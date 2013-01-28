@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameClient", "GameClient.csproj", "{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}"
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 2
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://saikosoft.visualstudio.com/defaultcollection
+		SccProjectUniqueName0 = GameClient.csproj
+		SccLocalPath0 = .
+		SccLocalPath1 = .
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.ActiveCfg = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.Build.0 = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.ActiveCfg = Release|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
