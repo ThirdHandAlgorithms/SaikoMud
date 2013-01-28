@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="libGroundfloor" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="default">
+				<Option output="libGroundfloor" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+			</Target>
+			<Target title="Mac">
+				<Option output="libGroundfloor" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<ExtraCommands>
+					<Add after="sh devmake.sh" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Linux">
+				<Option output="libGroundfloor" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<ExtraCommands>
+					<Add after="sh devmake.sh" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Win32">
+				<Option output="libGroundfloor" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-march=i586" />
+					<Add option="-O3" />
+				</Compiler>
+				<ExtraCommands>
+					<Add after="devmake.bat" />
+				</ExtraCommands>
+			</Target>
+		</Build>
+		<Unit filename="Atoms\GFCallable.cpp" />
+		<Unit filename="Atoms\GFCallable.h" />
+		<Unit filename="Atoms\GFDefines.h" />
+		<Unit filename="Atoms\GFFreeable.cpp" />
+		<Unit filename="Atoms\GFFreeable.h" />
+		<Unit filename="Atoms\GFInitialize.cpp" />
+		<Unit filename="Atoms\GFInitialize.h" />
+		<Unit filename="Atoms\GFLockable.cpp" />
+		<Unit filename="Atoms\GFLockable.h" />
+		<Unit filename="Atoms\GFMemFuncs.cpp" />
+		<Unit filename="Atoms\GFMemFuncs.h" />
+		<Unit filename="Bookshelfs\AbstractSquirrel.h" />
+		<Unit filename="Bookshelfs\GFBAttribute.cpp" />
+		<Unit filename="Bookshelfs\GFBAttribute.h" />
+		<Unit filename="Bookshelfs\GFBField.cpp" />
+		<Unit filename="Bookshelfs\GFBField.h" />
+		<Unit filename="Bookshelfs\GFBFields.cpp" />
+		<Unit filename="Bookshelfs\GFBFields.h" />
+		<Unit filename="Bookshelfs\GFBFunctions.cpp" />
+		<Unit filename="Bookshelfs\GFBFunctions.h" />
+		<Unit filename="Bookshelfs\GFBNode.cpp" />
+		<Unit filename="Bookshelfs\GFBNode.h" />
+		<Unit filename="Bookshelfs\GFBRecord.cpp" />
+		<Unit filename="Bookshelfs\GFBRecord.h" />
+		<Unit filename="Bookshelfs\GFBRecords.cpp" />
+		<Unit filename="Bookshelfs\GFBRecords.h" />
+		<Unit filename="Bookshelfs\GFBTable.cpp" />
+		<Unit filename="Bookshelfs\GFBTable.h" />
+		<Unit filename="Bookshelfs\GFBValue.cpp" />
+		<Unit filename="Bookshelfs\GFBValue.h" />
+		<Unit filename="Bookshelfs\RemoteSquirrel.cpp" />
+		<Unit filename="Bookshelfs\RemoteSquirrel.h" />
+		<Unit filename="Materials\GFCallbackThread.cpp" />
+		<Unit filename="Materials\GFCallbackThread.h" />
+		<Unit filename="Materials\GFCsvSettings.cpp" />
+		<Unit filename="Materials\GFCsvSettings.h" />
+		<Unit filename="Materials\GFDirectory.cpp" />
+		<Unit filename="Materials\GFDirectory.h" />
+		<Unit filename="Materials\GFFifoVector.cpp" />
+		<Unit filename="Materials\GFFifoVector.h" />
+		<Unit filename="Materials\GFFileCommunicator.cpp" />
+		<Unit filename="Materials\GFFileCommunicator.h" />
+		<Unit filename="Materials\GFFileWriter.cpp" />
+		<Unit filename="Materials\GFFileWriter.h" />
+		<Unit filename="Materials\GFFunctions.cpp" />
+		<Unit filename="Materials\GFFunctions.h" />
+		<Unit filename="Materials\GFGarbageCollector.cpp" />
+		<Unit filename="Materials\GFGarbageCollector.h" />
+		<Unit filename="Materials\GFLogger.cpp" />
+		<Unit filename="Materials\GFLogger.h" />
+		<Unit filename="Materials\GFStringLookup.cpp" />
+		<Unit filename="Materials\GFStringLookup.h" />
+		<Unit filename="Materials\GFThread.cpp" />
+		<Unit filename="Materials\GFThread.h" />
+		<Unit filename="Materials\GFThreadedBuffer.cpp" />
+		<Unit filename="Materials\GFThreadedBuffer.h" />
+		<Unit filename="Molecules\GFBaseCommunicator.cpp" />
+		<Unit filename="Molecules\GFBaseCommunicator.h" />
+		<Unit filename="Molecules\GFCallbacks.cpp" />
+		<Unit filename="Molecules\GFCallbacks.h" />
+		<Unit filename="Molecules\GFProperty.cpp" />
+		<Unit filename="Molecules\GFProperty.h" />
+		<Unit filename="Molecules\GFString.cpp" />
+		<Unit filename="Molecules\GFString.h" />
+		<Unit filename="Molecules\GFStringVector.cpp" />
+		<Unit filename="Molecules\GFStringVector.h" />
+		<Unit filename="Molecules\GFVector.cpp" />
+		<Unit filename="Molecules\GFVector.h" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+			<envvars />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

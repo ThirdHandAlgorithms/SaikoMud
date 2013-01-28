@@ -1,0 +1,19 @@
+
+TODO
+----
+
+
+1.
+Het lijkt er op dat de TGFString value index een maximum van tussen de 0x3FFFFFFF en 0x7FFFFFF waarbij de laatste in ieder geval al voor een kritieke fout zorgt.
+
+De vraag is hoe je met dit om wilt gaan. In de meeste gevallen weet je wel waar
+je mee bezig bent qua string allocatie en de grootte daarvan, maar wanneer er
+veel appends worden gedaan bij bijvoorbeeld het inlezen van grote bestanden, dan
+kan dit voor problemen zorgen.
+
+Extra pointers misschien, extra allocatie, het gebruiken van vectors, of het forceren
+van het gebruik van TGFStringVector, maar dat is te veel overhead en werk om alles
+daarvoor te herschrijven.
+
+DONE:
+Er is een if() voor setSize() en setLength() toegevoegd om te controleren of de lengte niet groter is dan 0x3FFFFFFF. Een False wordt teruggegeven en een printf() die tijdens /debugs tegengekomen kan worden.

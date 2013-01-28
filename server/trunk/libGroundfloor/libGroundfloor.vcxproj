@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B0CF6D8B-BE95-4765-A6E4-13E1B1440E08}</ProjectGuid>
+    <RootNamespace>libGroundfloor</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Atoms\GFCallable.cpp" />
+    <ClCompile Include="Atoms\GFFreeable.cpp" />
+    <ClCompile Include="Atoms\GFInitialize.cpp" />
+    <ClCompile Include="Atoms\GFLockable.cpp" />
+    <ClCompile Include="Atoms\GFMemFuncs.cpp" />
+    <ClCompile Include="Bookshelfs\GFBAttribute.cpp" />
+    <ClCompile Include="Bookshelfs\GFBField.cpp" />
+    <ClCompile Include="Bookshelfs\GFBFields.cpp" />
+    <ClCompile Include="Bookshelfs\GFBFunctions.cpp" />
+    <ClCompile Include="Bookshelfs\GFBNode.cpp" />
+    <ClCompile Include="Bookshelfs\GFBRecord.cpp" />
+    <ClCompile Include="Bookshelfs\GFBRecords.cpp" />
+    <ClCompile Include="Bookshelfs\GFBTable.cpp" />
+    <ClCompile Include="Bookshelfs\GFBValue.cpp" />
+    <ClCompile Include="Bookshelfs\RemoteSquirrel.cpp" />
+    <ClCompile Include="Materials\GFCallbackThread.cpp" />
+    <ClCompile Include="Materials\GFCsvSettings.cpp" />
+    <ClCompile Include="Materials\GFDirectory.cpp" />
+    <ClCompile Include="Materials\GFFifoVector.cpp" />
+    <ClCompile Include="Materials\GFFileCommunicator.cpp" />
+    <ClCompile Include="Materials\GFFileWriter.cpp" />
+    <ClCompile Include="Materials\GFFunctions.cpp" />
+    <ClCompile Include="Materials\GFGarbageCollector.cpp" />
+    <ClCompile Include="Materials\GFLogger.cpp" />
+    <ClCompile Include="Materials\GFResources.cpp" />
+    <ClCompile Include="Materials\GFStringLookup.cpp" />
+    <ClCompile Include="Materials\GFThread.cpp" />
+    <ClCompile Include="Materials\GFThreadedBuffer.cpp" />
+    <ClCompile Include="Molecules\GFBaseCommunicator.cpp" />
+    <ClCompile Include="Molecules\GFCallbacks.cpp" />
+    <ClCompile Include="Molecules\GFProperty.cpp" />
+    <ClCompile Include="Molecules\GFString.cpp" />
+    <ClCompile Include="Molecules\GFStringVector.cpp" />
+    <ClCompile Include="Molecules\GFVector.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Atoms\GFCallable.h" />
+    <ClInclude Include="Atoms\GFDefines.h" />
+    <ClInclude Include="Atoms\GFFreeable.h" />
+    <ClInclude Include="Atoms\GFInitialize.h" />
+    <ClInclude Include="Atoms\GFLockable.h" />
+    <ClInclude Include="Atoms\GFMemFuncs.h" />
+    <ClInclude Include="Bookshelfs\AbstractSquirrel.h" />
+    <ClInclude Include="Bookshelfs\GFBAttribute.h" />
+    <ClInclude Include="Bookshelfs\GFBField.h" />
+    <ClInclude Include="Bookshelfs\GFBFields.h" />
+    <ClInclude Include="Bookshelfs\GFBFunctions.h" />
+    <ClInclude Include="Bookshelfs\GFBNode.h" />
+    <ClInclude Include="Bookshelfs\GFBRecord.h" />
+    <ClInclude Include="Bookshelfs\GFBRecords.h" />
+    <ClInclude Include="Bookshelfs\GFBTable.h" />
+    <ClInclude Include="Bookshelfs\GFBValue.h" />
+    <ClInclude Include="Bookshelfs\RemoteSquirrel.h" />
+    <ClInclude Include="Materials\GFCallbackThread.h" />
+    <ClInclude Include="Materials\GFCsvSettings.h" />
+    <ClInclude Include="Materials\GFDirectory.h" />
+    <ClInclude Include="Materials\GFFifoVector.h" />
+    <ClInclude Include="Materials\GFFileCommunicator.h" />
+    <ClInclude Include="Materials\GFFileWriter.h" />
+    <ClInclude Include="Materials\GFFunctions.h" />
+    <ClInclude Include="Materials\GFGarbageCollector.h" />
+    <ClInclude Include="Materials\GFLogger.h" />
+    <ClInclude Include="Materials\GFResources.h" />
+    <ClInclude Include="Materials\GFStringLookup.h" />
+    <ClInclude Include="Materials\GFThread.h" />
+    <ClInclude Include="Materials\GFThreadedBuffer.h" />
+    <ClInclude Include="Molecules\GFBaseCommunicator.h" />
+    <ClInclude Include="Molecules\GFCallbacks.h" />
+    <ClInclude Include="Molecules\GFProperty.h" />
+    <ClInclude Include="Molecules\GFString.h" />
+    <ClInclude Include="Molecules\GFStringVector.h" />
+    <ClInclude Include="Molecules\GFVector.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
