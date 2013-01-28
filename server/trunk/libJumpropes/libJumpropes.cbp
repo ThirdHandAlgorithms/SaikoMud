@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="libJumpropes" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="default">
+				<Option output="libJumpropes" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+			</Target>
+			<Target title="Linux">
+				<Option platforms="Unix;" />
+				<Option output="libJumpropes" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<ExtraCommands>
+					<Add after="sh devmake.sh" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Mac">
+				<Option platforms="Mac;" />
+				<Option output="libJumpropes" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<ExtraCommands>
+					<Add after="sh devmake.sh" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Win32">
+				<Option platforms="Windows;" />
+				<Option output="libJumpropes" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-march=i586" />
+					<Add option="-O3" />
+				</Compiler>
+				<ExtraCommands>
+					<Add after="devmake.bat" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-g" />
+			<Add directory="..\..\Groundfloor\trunk\include" />
+		</Compiler>
+		<Unit filename="Common\JRHttpClient.cpp" />
+		<Unit filename="Common\JRHttpClient.h" />
+		<Unit filename="Common\JRHttpConnection.cpp" />
+		<Unit filename="Common\JRHttpConnection.h" />
+		<Unit filename="Common\JRHttpDownloader.cpp" />
+		<Unit filename="Common\JRHttpDownloader.h" />
+		<Unit filename="JRBaseSocket.cpp" />
+		<Unit filename="JRBaseSocket.h" />
+		<Unit filename="JRClientSocket.cpp" />
+		<Unit filename="JRClientSocket.h" />
+		<Unit filename="JRDefines.h" />
+		<Unit filename="JRFunctions.cpp" />
+		<Unit filename="JRFunctions.h" />
+		<Unit filename="JRInitialize.cpp" />
+		<Unit filename="JRInitialize.h" />
+		<Unit filename="JRLookupCache.cpp" />
+		<Unit filename="JRLookupCache.h" />
+		<Unit filename="JRNetAddress.cpp" />
+		<Unit filename="JRNetAddress.h" />
+		<Unit filename="JRServerSocket.cpp" />
+		<Unit filename="JRServerSocket.h" />
+		<Unit filename="JRThreadedConnection.cpp" />
+		<Unit filename="JRThreadedConnection.h" />
+		<Unit filename="JRThreadedSender.cpp" />
+		<Unit filename="JRThreadedSender.h" />
+		<Unit filename="JRThreadedServer.cpp" />
+		<Unit filename="JRThreadedServer.h" />
+		<Unit filename="JRURI.cpp" />
+		<Unit filename="JRURI.h" />
+		<Unit filename="wspiapi.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

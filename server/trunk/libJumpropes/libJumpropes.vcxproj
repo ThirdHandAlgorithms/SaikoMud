@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{590D1C57-4FF1-4CD0-B0A6-253FECBF7CED}</ProjectGuid>
+    <RootNamespace>libJumpropes</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(SolutionDir)\libGroundfloor\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\libGroundfloor\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\JRHttpClient.h" />
+    <ClInclude Include="Common\JRHttpConnection.h" />
+    <ClInclude Include="Common\JRHttpDownloader.h" />
+    <ClInclude Include="JRBaseSocket.h" />
+    <ClInclude Include="JRClientSocket.h" />
+    <ClInclude Include="JRDefines.h" />
+    <ClInclude Include="JRFunctions.h" />
+    <ClInclude Include="JRInitialize.h" />
+    <ClInclude Include="JRLookupCache.h" />
+    <ClInclude Include="JRNetAddress.h" />
+    <ClInclude Include="JRServerSocket.h" />
+    <ClInclude Include="JRThreadedConnection.h" />
+    <ClInclude Include="JRThreadedSender.h" />
+    <ClInclude Include="JRThreadedServer.h" />
+    <ClInclude Include="JRURI.h" />
+    <ClInclude Include="wspiapi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common\JRHttpClient.cpp" />
+    <ClCompile Include="Common\JRHttpConnection.cpp" />
+    <ClCompile Include="Common\JRHttpDownloader.cpp" />
+    <ClCompile Include="JRBaseSocket.cpp" />
+    <ClCompile Include="JRClientSocket.cpp" />
+    <ClCompile Include="JRFunctions.cpp" />
+    <ClCompile Include="JRInitialize.cpp" />
+    <ClCompile Include="JRLookupCache.cpp" />
+    <ClCompile Include="JRNetAddress.cpp" />
+    <ClCompile Include="JRServerSocket.cpp" />
+    <ClCompile Include="JRThreadedConnection.cpp" />
+    <ClCompile Include="JRThreadedSender.cpp" />
+    <ClCompile Include="JRThreadedServer.cpp" />
+    <ClCompile Include="JRURI.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
