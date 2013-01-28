@@ -11,14 +11,34 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libGroundfloor", "libGroundfloor\libGroundfloor.vcxproj", "{B0CF6D8B-BE95-4765-A6E4-13E1B1440E08}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libJumpropes", "libJumpropes\libJumpropes.vcxproj", "{590D1C57-4FF1-4CD0-B0A6-253FECBF7CED}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B0CF6D8B-BE95-4765-A6E4-13E1B1440E08} = {B0CF6D8B-BE95-4765-A6E4-13E1B1440E08}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libMySQLBooks", "libMySQLBooks\libMySQLBooks.vcxproj", "{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "grideditor", "..\..\grideditor\grideditor\grideditor.csproj", "{07333482-BC4E-41C5-88F9-C28BCFF8F471}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameClient", "..\..\GameClient\GameClient.csproj", "{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}"
+	ProjectSection(ProjectDependencies) = postProject
+		{590D1C57-4FF1-4CD0-B0A6-253FECBF7CED} = {590D1C57-4FF1-4CD0-B0A6-253FECBF7CED}
+		{B0CF6D8B-BE95-4765-A6E4-13E1B1440E08} = {B0CF6D8B-BE95-4765-A6E4-13E1B1440E08}
+	EndProjectSection
 EndProject
 Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 5
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://saikosoft.visualstudio.com/defaultcollection
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = SaikoMUD.vcxproj
+		SccLocalPath1 = .
+		SccProjectUniqueName2 = libGroundfloor\\libGroundfloor.vcxproj
+		SccProjectName2 = libGroundfloor
+		SccLocalPath2 = libGroundfloor
+		SccProjectUniqueName3 = libJumpropes\\libJumpropes.vcxproj
+		SccProjectName3 = libJumpropes
+		SccLocalPath3 = libJumpropes
+		SccProjectUniqueName4 = libMySQLBooks\\libMySQLBooks.vcxproj
+		SccProjectName4 = libMySQLBooks
+		SccLocalPath4 = libMySQLBooks
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Debug|Win32 = Debug|Win32
@@ -68,26 +88,6 @@ Global
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|Win32.ActiveCfg = Release|Win32
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|Win32.Build.0 = Release|Win32
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|x86.ActiveCfg = Release|Win32
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Debug|Win32.ActiveCfg = Debug|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Debug|x86.ActiveCfg = Debug|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Debug|x86.Build.0 = Debug|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Release|Mixed Platforms.Build.0 = Release|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Release|Win32.ActiveCfg = Release|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Release|x86.ActiveCfg = Release|x86
-		{07333482-BC4E-41C5-88F9-C28BCFF8F471}.Release|x86.Build.0 = Release|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Win32.ActiveCfg = Debug|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.ActiveCfg = Debug|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.Build.0 = Debug|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Mixed Platforms.Build.0 = Release|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Win32.ActiveCfg = Release|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.ActiveCfg = Release|x86
-		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
