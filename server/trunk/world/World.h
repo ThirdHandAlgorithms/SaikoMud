@@ -23,12 +23,18 @@ protected:
    TGFVector rooms;
    TGFVector combats;
 
+   TMySQLSquirrelConnection *conn;
    TGFVector characters;
+
+   TGFVector npcs;
+
+   bool hasNPCsAt(long x, long y);
 public:
    CWorld();
    ~CWorld();
 
    void reloadFromDatabase( TMySQLSquirrelConnection *pConn );
+   void reloadNpcs();
 
    CRoom *getRoom( long x, long y );
    CCombat *getCombat( long x, long y );

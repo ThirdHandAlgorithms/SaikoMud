@@ -12,7 +12,6 @@
 
 class CRoom: public TGFFreeable {
 protected:
-   TGFVector npcs;
 public:
    TGFProperty<long> x;
    TGFProperty<long> y;
@@ -21,8 +20,6 @@ public:
 
    CRoom();
    ~CRoom();
-
-   void loadNPCs();
 };
 
 

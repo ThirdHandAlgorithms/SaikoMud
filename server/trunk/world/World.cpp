@@ -1,6 +1,8 @@
 
 #include "World.h"
 
+#include "Character.h"
+
 CWorld::CWorld() : TGFFreeable() {
 }
 
@@ -36,6 +38,8 @@ void CWorld::endCombat( CCombat *c ) {
 void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
    rooms.clear();
 
+   this->conn = pConn;
+
    TMySQLSquirrel qry( pConn );
    TGFBRecord rec;
 
@@ -69,7 +73,8 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
 
    sql.setValue_ansi("select * from grid where active=1 order by y asc, x asc");
    qry.setQuery(&sql);
-   if ( qry.open() ) {
+   TSquirrelReturnData errData;
+   if ( qry.open(&errData) ) {
       TGFBFields flds;
       qry.fetchFields(&flds);
 
@@ -99,16 +104,57 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
       }
 
       qry.close();
+   } else {
+      printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
    }
+
+   this->reloadNpcs();
+}
+
+void CWorld::reloadNpcs() {
+   npcs.clear();
+
+   TMySQLSquirrel qry( this->conn );
+   TGFBRecord rec;
+
+   CCharacter *c;
+
+   TSquirrelReturnData errData;
+
+   TGFString sql("select * from `char` where account_id=0");
+   qry.setQuery(&sql);
+   if ( qry.open(&errData) ) {
+      while ( qry.next() ) {
+         qry.fetchRecord(&rec);
+
+         c = new CCharacter(this->conn, &qry);
+         this->npcs.addElement(c);
+      }
+
+      qry.close();
+   } else {
+      printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
+   }
+}
+
+bool CWorld::hasNPCsAt(long x, long y) {
+   CCharacter *obj;
+   unsigned long c = this->npcs.size();
+   for (unsigned long i = 0; i < c; i++) {
+      obj = static_cast<CCharacter *>( this->npcs.elementAt(i) );
+      if (obj != NULL) {
+         if ((obj->x.get() == x) && (obj->y.get() == y)) {
+            return true;
+         }
+      }
+   }
+
+   return false;
 }
 
 void CWorld::preloadInteriors( long x, long y ) {
    CRoom *r;
 
-   r = this->getRoom(x,y);
-   if (r != NULL) {
-      r->loadNPCs();
-   }
 }
 
 CRoom *CWorld::getRoom( long x, long y ) {
@@ -128,6 +174,8 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
    long start_x = x - radius;
    long start_y = y - radius;
 
+   this->preloadInteriors(x,y);
+
    s->setSize(size_w*size_h + size_h*2);
    TGFString line;
    line.setSize(size_w + 2);
@@ -137,11 +185,24 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
       line.setLength(0);
       for ( long j = start_x; j < (start_x + size_w); j++ ) {
          if ( (x == j) && (y == i) ) {
-            line.append_ansi("@");
+            CRoom *room = this->getRoom(j,i);
+            if ( room != NULL ) {
+               if (this->hasNPCsAt(i,j)) {
+                  line.append(static_cast<char>(97 + room->envtype.get()));
+               } else {
+                  line.append_ansi("@");
+               }
+            } else {
+               line.append_ansi("@");
+            }
          } else {
             CRoom *room = this->getRoom(j,i);
             if ( room != NULL ) {
-               line.append(static_cast<char>((48 + room->envtype.get())));
+               if (this->hasNPCsAt(i,j)) {
+                  line.append(static_cast<char>((65 + room->envtype.get())));
+               } else {
+                  line.append(static_cast<char>((48 + room->envtype.get())));
+               }
             } else {
                line.append_ansi(" ");
             }

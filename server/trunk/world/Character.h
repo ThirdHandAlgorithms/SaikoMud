@@ -24,6 +24,7 @@ public:
    TGFProperty<bool> isNPC;
 
    CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool isNPC );
+   CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery );
    ~CCharacter();
 
    void save();

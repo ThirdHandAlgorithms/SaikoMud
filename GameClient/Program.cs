@@ -19,6 +19,8 @@ namespace GameClient {
         private Surface m_statsandslots;
         private Surface m_infobox;
 
+        private Surface m_spriteNpcs;
+
         private Rectangle MapArea = new Rectangle();
         private Rectangle ActionInfoArea = new Rectangle();
         private Rectangle SlotsAndStatsArea = new Rectangle();
@@ -146,6 +148,9 @@ namespace GameClient {
 
             m_infobox = new Surface(@"..\..\Data\infobox.png");
             m_infobox.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_spriteNpcs = new Surface(@"..\..\Data\npcs.png");
+            m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
         }
 
         private void LoadTextures() {
@@ -241,12 +246,30 @@ namespace GameClient {
                         hero.Y = worldpoint.Y;
                     } else if ((arrStrMap[y][x] >= '0') && (arrStrMap[y][x] <= '9')) {
                         envtype = (byte)(UInt32.Parse(arrStrMap[y][x] + "") & 0xff);
+                    } else if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
+                        envtype = (byte)((arrStrMap[y][x] - 'A') & 0xff);
+                    } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
+                        envtype = (byte)((arrStrMap[y][x] - 'a') & 0xff);
+                        hero.X = worldpoint.X;
+                        hero.Y = worldpoint.Y;
                     } else {
                         envtype = 0;
                     }
 
                     spriterect.Y = envtype * sz.Height;
                     Video.Screen.Blit(m_SpriteSheet, worldpoint, spriterect);
+
+                    if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
+                        Rectangle r = new Rectangle();
+                        r.X = worldpoint.X;
+                        r.Y = worldpoint.Y;
+                        Video.Screen.Blit(m_spriteNpcs, r);
+                    } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
+                        Rectangle r = new Rectangle();
+                        r.X = worldpoint.X;
+                        r.Y = worldpoint.Y;
+                        Video.Screen.Blit(m_spriteNpcs, r);
+                    }
 
                     worldpoint.X += sz.Width;
                 }
