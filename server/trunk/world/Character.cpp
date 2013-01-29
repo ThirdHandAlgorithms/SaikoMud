@@ -15,6 +15,33 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool 
    }
 }
 
+CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery ): CCombatant() {
+   this->conn = pConn;
+   
+   TGFBRecord rec;
+   TGFBFields flds;
+
+   pQuery->fetchFields(&flds);
+   pQuery->fetchRecord(&rec);
+
+   this->id = rec.getValue(flds.getFieldIndex_ansi("id"))->asInteger();
+
+   bool bIsNPC = (rec.getValue(flds.getFieldIndex_ansi("account_id"))->asInteger() == 0);
+   this->isNPC.internalSet(bIsNPC);
+
+   this->name.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("name"))->asString() );
+   this->level.set( rec.getValue(flds.getFieldIndex_ansi("level"))->asInteger() );
+   this->xp.set( rec.getValue(flds.getFieldIndex_ansi("totalxp"))->asInteger() );
+   this->money.set( rec.getValue(flds.getFieldIndex_ansi("money"))->asInteger() );
+   this->x.set( rec.getValue(flds.getFieldIndex_ansi("x"))->asInteger() );
+   this->y.set( rec.getValue(flds.getFieldIndex_ansi("y"))->asInteger() );
+   this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
+
+   if (bIsNPC) {
+      this->loadQuests();
+   }
+}
+
 CCharacter::~CCharacter() {
 }
 
