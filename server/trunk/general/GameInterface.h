@@ -46,13 +46,16 @@ public:
    bool run_walkleft();
    bool run_walkright();
 
-   bool attack_start(TGFString *sMobIdentifier);
+   bool attack_start(DWORD32 iCharId);
    //bool attack_stop();
    // ...
 
+   bool interact_greet(DWORD32 iCharId);
+   int interact_getQuests(DWORD32 iCharId, TGFVector *v);
+   bool interact_getQuestText(DWORD32 iQuestId, TGFString *s);
+
    // special GM actions
    bool run_teleport( long x, long y );
-
 
 	// 
 	void StartCombatDummy();

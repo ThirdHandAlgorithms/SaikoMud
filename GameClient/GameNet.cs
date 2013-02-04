@@ -27,6 +27,8 @@ namespace GameClient {
         public event GameNetCallback roominfo;
         public event GameNetCallback mapinfo;
         public event GameNetCallback chatmsginfo;
+        public event GameNetCallback questtitlesinfo;
+        public event GameNetCallback questtextinfo;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -39,12 +41,22 @@ namespace GameClient {
 
         public const UInt32 c_chat_say = 0x30000010;
 
+        public const UInt32 c_interact_greet = 0x20000020;
+        public const UInt32 c_interact_getquesttitles = 0x20000021;
+        public const UInt32 c_interact_getquesttext = 0x20000022;
+
         // responses
         public const UInt32 c_response_lastactioninfo = 0x10010000;
         public const UInt32 c_response_roominfo = 0x30020000;
         public const UInt32 c_response_asciimap = 0x10030000;
 
         public const UInt32 c_response_chatmessage = 0x30100000;
+
+        public const UInt32 c_response_npcnames = 0x30110000;
+        public const UInt32 c_response_dialog = 0x20120000;
+
+        public const UInt32 c_response_questtitle = 0x30130000;
+        public const UInt32 c_response_questtext = 0x30140000;
 
 
         public GameNet() {
@@ -113,7 +125,16 @@ namespace GameClient {
                 mapinfo.Invoke(command, intparam1, intparam2, sDataStr);
             } else if (command == c_response_chatmessage) {
                 chatmsginfo.Invoke(command, intparam1, intparam2, sDataStr);
+            } else if (command == c_response_questtitle) {
+                questtitlesinfo.Invoke(command, intparam1, intparam2, sDataStr);
+            } else if (command == c_response_questtext) {
+                questtextinfo.Invoke(command, intparam1, intparam2, sDataStr);
             }
+
+            
+        //public const UInt32 c_response_npcnames = 0x30110000;
+        //public const UInt32 c_response_dialog = 0x20120000;
+
         }
 
         public void ThreadProc() {

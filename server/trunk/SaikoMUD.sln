@@ -21,9 +21,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libMySQLBooks", "libMySQLBo
 		{B0CF6D8B-BE95-4765-A6E4-13E1B1440E08} = {B0CF6D8B-BE95-4765-A6E4-13E1B1440E08}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameClient", "..\..\GameClient\GameClient.csproj", "{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}"
+EndProject
 Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 5
+		SccNumberOfProjects = 6
 		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
 		SccTeamFoundationServer = https://saikosoft.visualstudio.com/defaultcollection
 		SccLocalPath0 = .
@@ -38,6 +40,9 @@ Global
 		SccProjectUniqueName4 = libMySQLBooks\\libMySQLBooks.vcxproj
 		SccProjectName4 = libMySQLBooks
 		SccLocalPath4 = libMySQLBooks
+		SccProjectUniqueName5 = ..\\..\\GameClient\\GameClient.csproj
+		SccProjectName5 = ../../GameClient
+		SccLocalPath5 = ..\\..\\GameClient
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -88,6 +93,16 @@ Global
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|Win32.ActiveCfg = Release|Win32
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|Win32.Build.0 = Release|Win32
 		{141B8FD3-73FC-4503-B9BB-88F542B0F6B6}.Release|x86.ActiveCfg = Release|Win32
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|Win32.ActiveCfg = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.ActiveCfg = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Debug|x86.Build.0 = Debug|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Mixed Platforms.Build.0 = Release|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|Win32.ActiveCfg = Release|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.ActiveCfg = Release|x86
+		{735EA5E8-8AD0-466E-8DCA-15E8FD233B32}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

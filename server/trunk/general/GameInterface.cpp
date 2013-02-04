@@ -14,6 +14,9 @@ CGameInterface::CGameInterface() : TGFFreeable() {
 }
 
 CGameInterface::~CGameInterface() {
+   if (this->loggedInCharacter != NULL) {
+      Global_World()->unloadCharacter(this->loggedInCharacter);
+   }
 }
 
 void CGameInterface::DoChecks() {
@@ -40,6 +43,7 @@ bool CGameInterface::Login(TGFString *username, TGFString *password) {
       unsigned long cid = acc->getMainCharId();
       if (cid != 0) {
          this->loggedInCharacter = new CCharacter( Global_DBConnection(), cid, false );
+         Global_World()->generateUniqueWorldId(this->loggedInCharacter);
          this->nickname.set( this->loggedInCharacter->name.get() );
       }
 
@@ -207,10 +211,60 @@ bool CGameInterface::run_teleport( long x, long y ) {
 	return true;
 }
 
-bool CGameInterface::attack_start(TGFString *sMobIdentifier) {
+bool CGameInterface::attack_start(DWORD32 iCharId) {
+   this->DoChecks();
+
+   CCharacter *cTarget = Global_World()->getCharacter(iCharId);
+   if (cTarget == NULL) {
+      this->sLastactionInfo.setValue_ansi("Error");
+   } else {
+      if (cTarget->isAlive()) {
+         CCombat *combat = Global_World()->getCombat(this->loggedInCharacter->x.get(),this->loggedInCharacter->y.get());
+         combat->joinCombat(cTarget);
+         this->loggedInCharacter->setTarget(cTarget);
+         combat->joinCombat(this->loggedInCharacter);
+         combat->start();
+
+         return true;
+      } else {
+         this->sLastactionInfo.setValue_ansi("Target is already dead");
+      }
+   }
+
+   return false;
+}
+
+bool CGameInterface::interact_greet(DWORD32 iCharId) {
    this->DoChecks();
 
    return false;
+}
+
+int CGameInterface::interact_getQuests(DWORD32 iCharId, TGFVector *v) {
+   this->DoChecks();
+
+   CCharacter *cTarget = Global_World()->getCharacter(iCharId);
+   if (cTarget == NULL) {
+      this->sLastactionInfo.setValue_ansi("Error");
+
+      return -1;
+   } else {
+      if (cTarget->isNPC.get()) {
+         return cTarget->getQuests(this->loggedInCharacter, v);
+      } else {
+         this->sLastactionInfo.setValue_ansi("Error");
+         
+         return -1;
+      }
+   }   
+
+   return 0;
+}
+
+bool CGameInterface::interact_getQuestText(DWORD32 iQuestId, TGFString *s) {
+   this->DoChecks();
+
+   return Global_World()->getQuestStory(iQuestId, this->loggedInCharacter, s);
 }
 
 void CGameInterface::StartCombatDummy() {
