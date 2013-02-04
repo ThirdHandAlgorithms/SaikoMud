@@ -17,9 +17,23 @@
 
 #define c_chat_say 0x30000010
 
+#define c_interact_greet 0x20000020
+#define c_interact_getquesttitles 0x20000021
+#define c_interact_getquesttext 0x20000022
+
+
 #define c_response_lastactioninfo 0x10010000
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
+
+#define c_response_npcnames 0x30110000
+#define c_response_dialog 0x20120000
+
+#define c_response_questtitle 0x30130000
+#define c_response_questtext 0x30140000
+
+//#define c_response_completedquest 0x3015000
+
 
 /*
 #define c_response_ 0x10100000
@@ -42,6 +56,8 @@ protected:
    void inform_currentroom();
    void inform_lastaction();
    void inform_map();
+   void inform_questtitle(DWORD32 iQuestId, TGFString *s);
+   void inform_questtext(DWORD32 iQuestId, TGFString *s);
 
    //void inform_currentplayerstats();
 

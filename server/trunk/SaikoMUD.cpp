@@ -32,10 +32,34 @@ int main(int argc, char* argv[]) {
 
                      if ( initGlobalChatChannel() ) {
                         CTelnetServe *server = Global_Server();
+
+
+                        CGameInterface intf;
+                        intf.Login(GFDisposableStr("servertest"), GFDisposableStr("muddy"));
+                        
+                        Global_World()->printf_world_stats(true);
+
+                        TGFString s;
+                        intf.interact_getQuestText(1, &s);
+                        printf("%s\n", s.getValue());
+
+                        auto c = Global_World()->getNpcByName(GFDisposableStr("npc_mister_b"));
+                        if (c!=NULL){
+                           TGFVector v;
+                           auto i = intf.interact_getQuests(c->WorldId, &v);
+                           for (int j = 0; j < i; j++) {
+                              auto q = static_cast<CQuest *>(v.elementAt(j));
+                              printf("%d: %s\n", q->id, q->title.getValue());
+                           }
+                        }
+                        
                         while ( server->isRunning() ) {
                            server->cleanup();
 
-                           GFMillisleep(500);
+                           //printf("\nStats\n=====\n");
+                           //Global_World()->printf_world_stats(true);
+
+                           GFMillisleep(1500);
                         }
 
                         finiGlobalChatChannel();

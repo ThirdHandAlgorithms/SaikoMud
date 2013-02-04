@@ -2,8 +2,11 @@
 #include "World.h"
 
 #include "Character.h"
+#include <Groundfloor/Materials/GFGarbageCollector.h>
 
 CWorld::CWorld() : TGFFreeable() {
+   worldids.autoClear = false;
+   worldids.resizeVector(1024);
 }
 
 CWorld::~CWorld() {
@@ -128,6 +131,8 @@ void CWorld::reloadNpcs() {
          qry.fetchRecord(&rec);
 
          c = new CCharacter(this->conn, &qry);
+         generateUniqueWorldId(c);
+         this->loadNeededQuests(c);
          this->npcs.addElement(c);
       }
 
@@ -135,6 +140,21 @@ void CWorld::reloadNpcs() {
    } else {
       printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
    }
+}
+
+CCharacter *CWorld::getNpcByName(TGFString *s) {
+   CCharacter *obj;
+   unsigned long c = this->npcs.size();
+   for (unsigned long i = 0; i < c; i++) {
+      obj = static_cast<CCharacter *>( this->npcs.elementAt(i) );
+      if (obj != NULL) {
+         if (s->match(obj->name.link())) {
+            return obj;
+         }
+      }
+   }
+
+   return NULL;
 }
 
 bool CWorld::hasNPCsAt(long x, long y) {
@@ -213,4 +233,156 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
       line.append(10);
       s->prepend(&line);
    }
+}
+
+CCharacter *CWorld::getCharacter(DWORD32 id) {
+   return static_cast<CCharacter *>(worldids.elementAt(id));
+}
+
+DWORD32 CWorld::generateUniqueWorldId(CCharacter *c) {
+   DWORD32 r;
+
+   worldidlock.lock();
+   try  {
+
+      r = (rand() % 0xffff) + ((DWORD32)c % 0x0fff) + 1;
+
+      TGFFreeable *obj = NULL;
+
+      while ( (obj = worldids.elementAt(r)) != NULL ) {
+         r = (rand() % 0xffff) + 1;
+      }
+
+
+      if (worldids.size() < r) {
+         worldids.resizeVector(r+1);
+         worldids.setElementCount(r+1);
+      }
+      worldids.replaceElement(r, c);
+
+      c->WorldId = r;
+
+      if (!c->isNPC.get()) {
+         this->characters.addElement(c);
+      }
+   } catch (...) {
+      worldidlock.unlock();
+      throw;
+   }
+   worldidlock.unlock();
+
+   return r;
+}
+
+void CWorld::unloadCharacter(CCharacter *c) {
+   if (c->WorldId != 0) {
+      worldidlock.lock();
+      try  {
+         this->characters.removeElement(c);
+         this->characters.compress();
+
+         worldids.replaceElement(c->WorldId, NULL);
+      } catch (...) {
+         worldidlock.unlock();
+         throw;
+      }
+      worldidlock.unlock();
+   }
+}
+
+CQuest *CWorld::getQuest(DWORD32 id) {
+   return static_cast<CQuest *>( this->quests.elementAt(id) );
+}
+
+void CWorld::loadNeededQuests(CCharacter *cNpc) {
+   TGFString sql("select `quest`.* from `npc_quest` left outer join `quest` on (`quest`.`id`=`npc_quest`.`quest_id`) where char_id=:char_id");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(cNpc->id.get());
+   
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      TGFBFields flds;
+      qry.fetchFields(&flds);
+
+      int fld_id = flds.getFieldIndex_ansi("id");
+      int fld_title = flds.getFieldIndex_ansi("title");
+      int fld_story = flds.getFieldIndex_ansi("story");
+      int fld_prereq = flds.getFieldIndex_ansi("prereq_quest_id");
+
+      while ( qry.next() ) {
+         TGFBRecord rec;
+         qry.fetchRecord(&rec);
+
+         CQuest *quest = new CQuest();
+         quest->id = rec.getValue(fld_id)->asInteger();
+         quest->prereq_quest_id = rec.getValue(fld_prereq)->asInteger();
+         quest->title.setValue( rec.getValue(fld_title)->asString() );
+         quest->story.setValue( rec.getValue(fld_story)->asString() );
+
+         if (this->quests.size() < quest->id) {
+            this->quests.resizeVector(quest->id + 1);
+            this->quests.setElementCount(quest->id + 1);
+         }
+         this->quests.replaceElement(quest->id, quest);
+
+         cNpc->_addQuest(quest);
+      }
+
+      qry.close();
+   } else {
+      printf("CWorld::loadNeededQuests(): %s\n", err.errorstring.getValue());
+   }
+}
+
+bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory) {
+   CQuest *q = this->getQuest(iQuestId);
+   if (q != NULL) {
+      if (q->id == iQuestId) {
+         sStory->setValue(&(q->story));
+
+         if (cFor != NULL) {
+            sStory->replace_ansi("{player}", cFor->name.get());
+            
+            TGFBValue v;
+            v.setInteger( cFor->level.get() );
+            sStory->replace_ansi("{lvl}", v.asString()->getValue());
+         }
+
+         return true;
+      }
+   }
+
+   return false;
+}
+
+void CWorld::printf_world_stats(bool preloadThings) {
+
+   if (preloadThings) {
+      // do stuff...
+   }
+
+   TGFString s;
+
+   s.append_ansi("Number of mapped rooms: %d\n");
+   s.append_ansi("Number of players     : %d\n");
+   s.append_ansi("Number of NPCs        : %d\n");
+   //s.append_ansi("Number of world-ids   : %d\n");
+   s.append_ansi("Number of Quests      : %d\n");
+   //s.append_ansi("Number of Combats     : %d\n");
+
+   s.append_ansi("NPC ID (world-id): %d\n");
+
+   CCharacter *c = this->getNpcByName(GFDisposableStr("npc_mister_a"));
+
+   printf(
+      s.getValue(),
+      rooms.size(),
+      characters.size(),
+      npcs.size(),
+      //worldids.size() - 1,
+      quests.size() - 1,
+      c->WorldId
+      //combats.size()
+   );
 }

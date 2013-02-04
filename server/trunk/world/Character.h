@@ -5,17 +5,22 @@
 #include <MySQLBooks/MySQLSquirrel.h>
 #include <Groundfloor/Molecules/GFProperty.h>
 
+#include <Groundfloor/Molecules/GFVector.h>
+#include <Groundfloor/Molecules/GFStringVector.h>
+
+#include "Quest.h"
 #include "../combat/Combat.h"
 
 class CCharacter: public CCombatant {
 protected:
    TMySQLSquirrelConnection *conn;
-   unsigned long id;
    TGFVector quests;
 
    void load();
-   void loadQuests();   // load quests this character can give to players (only when accountid=0 (npc))
 public:
+   DWORD32 WorldId;
+ 
+   TGFProperty<unsigned long> id;
    TGFProperty<unsigned int> xp;
    TGFProperty<unsigned int> money;
    TGFProperty<long> x;
@@ -26,6 +31,10 @@ public:
    CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool isNPC );
    CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery );
    ~CCharacter();
+
+   void _addQuest(CQuest *q);
+
+   int getQuests(CCharacter *cFor, TGFVector *vQuests);
 
    void save();
 

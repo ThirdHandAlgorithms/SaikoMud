@@ -89,15 +89,20 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
    bool bIsStrCommand = ((iCommand & 0x10000000) > 0);
    bool bIntParamCommand = ((iCommand & 0x20000000) > 0);
 
+   // void = 4
+   // int = 12 (cmd 4 + int1 4 + int2 4)
+   // str = 4+4 = 8
+   // int+str = 12 + 4 = 16
+
    if (!(bIsStrCommand || bIntParamCommand)) {
       *command = iCommand;
 
       buffer.remove(0, 3);
 
       return true;
-   } else if ((bIsStrCommand || bIntParamCommand) && (iBufLen < 16) ) {
+   } else if ((bIsStrCommand || bIntParamCommand) && (iBufLen < 12) ) {
       return false;
-   } else if (bIntParamCommand && bIsStrCommand && (iBufLen < 20)) {
+   } else if (bIntParamCommand && bIsStrCommand && (iBufLen < 16)) {
       return false;
    }
 
@@ -120,7 +125,7 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
       iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
       iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+3]);
 
-      *intparam1 = iIntParam1;
+      *intparam2 = iIntParam2;
 
       i += 4;
    }
@@ -143,6 +148,8 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
    }
 
    buffer.remove(0, i + iStrLen - 1);
+   
+   *command = iCommand;
 
    return true;
 }
@@ -186,6 +193,32 @@ void CTelnetConnection::inform_map() {
       }
    } else {
       this->sendBin(c_response_asciimap, 0, 0, &tmp);
+   }
+}
+
+void CTelnetConnection::inform_questtitle(DWORD32 iQuestId, TGFString *s) {
+   TGFString tmp(s);
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_questtitle, iQuestId, 0, &tmp);
+   }
+}
+
+void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s) {
+   TGFString tmp(s);
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_questtext, iQuestId, 0, &tmp);
    }
 }
 
@@ -270,31 +303,66 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
          DWORD32 intparam2;
          TGFString s;
 
+         bool bMovementActionOk = false;
+
          if ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s) )  {
+            printf("received command %08x\n", command);
             if (command == c_run_walkbackwards) {
                bActionOk = this->gameintf.run_walkbackwards();
+               bMovementActionOk = bActionOk;
             } else if (command == c_run_walkforward) {
                bActionOk = this->gameintf.run_walkforward();
+               bMovementActionOk = bActionOk;
             } else if (command == c_run_walkleft) {
                bActionOk = this->gameintf.run_walkleft();
+               bMovementActionOk = bActionOk;
             } else if (command == c_run_walkright) {
                bActionOk = this->gameintf.run_walkright();
+               bMovementActionOk = bActionOk;
             } else if (command == c_attack_start) {
-               bActionOk = this->gameintf.attack_start(&s);
+               bActionOk = this->gameintf.attack_start(intparam1);
+               bMovementActionOk = bActionOk;
             } else if (command == c_attack_stop) {
                //this->gameintf.attack_stop();
             } else if (command == c_chat_say) {
                if (intparam1 == 2) {
                   sendToGlobalChatChannel( this, &s );
                }
+            } else if (command == c_interact_greet) {
+               bActionOk = this->gameintf.interact_greet(intparam1);
+            } else if (command == c_interact_getquesttitles) {
+               TGFVector v;
+               v.autoClear = false;
+
+               int c = this->gameintf.interact_getQuests(intparam1, &v);
+
+               if ( c != -1 ) {
+                  for (int i = 0; i < c; i++) {
+                     CQuest *q = static_cast<CQuest *>(v.elementAt(i));
+                     this->inform_questtitle(q->id, &(q->title));
+                  }
+               }
+               
+               bActionOk = (c != -1);
+            } else if (command == c_interact_getquesttext) {
+               TGFString s;
+
+               bActionOk = this->gameintf.interact_getQuestText(intparam1, &s);
+               
+               if (bActionOk) {
+                  this->inform_questtext(intparam1, &s);
+               }
             }
 
+            this->inform_lastaction();
+
             if (bActionOk) {
-               this->inform_lastaction();
+               // todo: ... what to do?
+            }
+
+            if (bMovementActionOk) {
                this->inform_currentroom();
                this->inform_map();
-            } else {
-               this->inform_lastaction();
             }
          }
       }

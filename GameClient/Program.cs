@@ -11,6 +11,13 @@ using SdlDotNet.Input;
 using System.Drawing;
 
 namespace GameClient {
+
+    class CQuest {
+        public UInt32 QuestID;
+        public String Title;
+        public String Text;
+    };
+
     class Program {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
@@ -18,6 +25,7 @@ namespace GameClient {
         private Surface m_vidsurf;
         private Surface m_statsandslots;
         private Surface m_infobox;
+        private Surface m_npcDialogBox;
 
         private Surface m_spriteNpcs;
 
@@ -29,6 +37,12 @@ namespace GameClient {
 
         private Rectangle StatsTextArea = new Rectangle();
 
+        private Rectangle NPCDialogArea = new Rectangle();
+        private Rectangle NPCDialogQuestTitleArea = new Rectangle();
+        private Rectangle NPCDialogQuestTextArea = new Rectangle();
+
+        private UInt32 CurrentNPC = 0;
+
         private GameNet net;
 
         private String StrActionInfo = "";
@@ -36,12 +50,19 @@ namespace GameClient {
         private String StrRoomInfo = "";
         private byte RoomEnvType = 0;
 
+        private List<CQuest> QuestsAvailable = new List<CQuest>();
+        private String StrCurrentQuestTitle = "";
+        private List<String> CurrentQuestText = null;
+        private UInt32 CurrentQuestId = 0;
+
         private String[] arrStrMap = null;
 
         private SpriteCollection tex = new SpriteCollection();
 
         private SdlDotNet.Graphics.Font font_actioninfo;
         private SdlDotNet.Graphics.Font font_roominfo;
+        private SdlDotNet.Graphics.Font font_questtext;
+        private SdlDotNet.Graphics.Font font_questtexttitle;
 
         string[] crlf = { "" + (char)(13) + (char)(10) };
 
@@ -69,6 +90,9 @@ namespace GameClient {
             font_actioninfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 18);
             font_roominfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 18);
 
+            font_questtexttitle = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 16);
+            font_questtext = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 14);
+
             ActionInfoArea.X = 0;
             ActionInfoArea.Y = 0;
             ActionInfoArea.Height = 25;
@@ -88,6 +112,18 @@ namespace GameClient {
             RoomInfoTextArea.X = InfoBoxArea.X + 10;
             RoomInfoTextArea.Y = InfoBoxArea.Y + 10;
 
+            NPCDialogArea.X = 50;
+            NPCDialogArea.Y = 50;
+
+            NPCDialogQuestTitleArea.X = 60;
+            NPCDialogQuestTitleArea.Y = 60;
+
+            NPCDialogQuestTextArea.X = 60;
+            NPCDialogQuestTextArea.Y = 105;
+            NPCDialogQuestTextArea.Width = 400;
+            NPCDialogQuestTextArea.Height = 400;
+
+
 
             Events.Quit += new EventHandler<QuitEventArgs>(ApplicationQuitEventHandler);
 
@@ -97,6 +133,9 @@ namespace GameClient {
             net.roominfo += OnRoomInfo;
             net.mapinfo += OnMapInfo;
             net.chatmsginfo += OnChatMessage;
+
+            net.questtitlesinfo += OnQuestTitleInfo;
+            net.questtextinfo += OnQuestTextInfo;
 
             net.Connect();
 
@@ -132,6 +171,97 @@ namespace GameClient {
             frmDebug.addMessage(str + crlf[0]);
         }
 
+        public void OnQuestTitleInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            CQuest q = new CQuest();
+            q.QuestID = intparam1;
+            q.Title = str;
+
+            QuestsAvailable.Add(q);
+
+            // todo: temp
+            //StrCurrentQuestTitle = q.Text;
+
+            frmDebug.addMessage(str + crlf[0]);
+        }
+
+        public int FindPreviousSpace(String s, int iLastPos) {
+            int i = iLastPos;
+            if (i >= 0) {
+                while (s[i] != ' ') {
+                    i--;
+                    if (i <= 0) {
+                        i = 0;
+                        break;
+                    }
+                }
+            }
+            return i;
+        }
+
+        public List<String> PrepareStringForDisplay(String s, SdlDotNet.Graphics.Font f, int maxwidth) {
+            List<String> vs = new List<String>();
+
+            String[] arrParagraphs = s.Split(crlf, StringSplitOptions.None);
+
+            foreach (var line in arrParagraphs) {
+                bool bDoneWithLine = false;
+                String linepartleft = line;
+                while (!bDoneWithLine) {
+                    Size ls = f.SizeText(linepartleft);
+                    int c1 = linepartleft.Length;
+                    int p1 = c1;
+                    if (p1 > 0) {
+                        while (ls.Width > maxwidth) {
+                            p1 = FindPreviousSpace(linepartleft, p1 - 1);
+
+                            ls = f.SizeText(linepartleft.Substring(0, p1));
+                        }
+
+                        vs.Add(linepartleft.Substring(0, p1));
+                    }
+
+                    if (c1 > p1 + 1) {
+                        linepartleft = linepartleft.Substring(p1 + 1);
+                        if (linepartleft.Trim().Length == 0) {
+                            bDoneWithLine = true;
+                        }
+                    } else {
+                        bDoneWithLine = true;
+                    }
+                }
+
+                vs.Add("");
+            }
+
+            return vs;
+        }
+
+        public List<String> PrepareQuestText(String s) {
+            return PrepareStringForDisplay(s, font_questtext, 450);
+        }
+
+        public void OnQuestTextInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            /*
+            var q =
+                from quest in QuestsAvailable
+                where quest.QuestID == intparam1
+                select quest;
+            // q is an enumerable... why loop over it twice?... let's not do linq here../
+            */
+
+            foreach (var q in QuestsAvailable) {
+                if (q.QuestID == intparam1) {
+                    q.Text = str;
+                    StrCurrentQuestTitle = q.Title;
+                    CurrentQuestText = PrepareQuestText(str);
+                    CurrentQuestId = intparam1;
+                    break;
+                }
+            }
+
+            frmDebug.addMessage(str + crlf[0]);
+        }
+
         public void OnChatMessage(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
             // intparam is channelnumber (==2)
             // str is message
@@ -151,6 +281,9 @@ namespace GameClient {
 
             m_spriteNpcs = new Surface(@"..\..\Data\npcs.png");
             m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_npcDialogBox = new Surface(@"..\..\Data\npc_dialog.png");
+            m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
         }
 
         private void LoadTextures() {
@@ -169,6 +302,50 @@ namespace GameClient {
             Surface m_RoomInfoSurf = font_actioninfo.Render(StrRoomInfo, Color.Black);
 
             Video.Screen.Blit(m_RoomInfoSurf, RoomInfoTextArea);
+        }
+
+        private void RenderNPCDialog() {
+            Surface m_QuestTitle;
+
+            if (CurrentNPC != 0) {
+                Video.Screen.Blit(m_npcDialogBox, NPCDialogArea);
+
+                // the dialog for when the player is receiving the quests the NPC can give the player
+                if (CurrentQuestId == 0) {
+                    int h = 0;
+
+                    Rectangle r = new Rectangle(NPCDialogQuestTitleArea.X, NPCDialogQuestTitleArea.Y, NPCDialogQuestTitleArea.Width, NPCDialogQuestTitleArea.Height);
+
+                    foreach (var q in QuestsAvailable) {
+                        UInt32 id = q.QuestID;
+                        String s = q.Title;
+
+                        m_QuestTitle = font_actioninfo.Render(s, Color.Black);
+                        Video.Screen.Blit(m_QuestTitle, r);
+
+                        r.Y += 30;
+                    }
+                }
+
+
+                // this is the dialog when the player is reading a quest (and thus has selected one already)
+                if (CurrentQuestId != 0) {
+                    m_QuestTitle = font_questtexttitle.Render(StrCurrentQuestTitle, Color.Black);
+                    Video.Screen.Blit(m_QuestTitle, NPCDialogQuestTitleArea);
+
+//                    Surface m_QuestText = font_actioninfo.Render(StrCurrentQuestText, Color.Black, true, 400, 20);
+//                    Video.Screen.Blit(m_QuestText, NPCDialogQuestTextArea);
+
+                    Rectangle liner = new Rectangle(NPCDialogQuestTextArea.X, NPCDialogQuestTextArea.Y, NPCDialogQuestTextArea.Width, NPCDialogQuestTextArea.Height);
+
+                    foreach (var line in CurrentQuestText) {
+                        Surface m_QuestText = font_questtext.Render(line, Color.Black);
+                        Video.Screen.Blit(m_QuestText, liner);
+
+                        liner.Y += m_QuestText.Height;
+                    }
+                }
+            }
         }
 
         private void RenderSlotsAndStats() {
@@ -340,6 +517,7 @@ namespace GameClient {
                 RenderSlotsAndStats();
                 RenderActionInfo();
                 RenderRoomInfo();
+                RenderNPCDialog();
             } catch (System.ArgumentOutOfRangeException ex) {
                 //Console.WriteLine(ex.StackTrace.ToString());
             }
@@ -372,6 +550,16 @@ namespace GameClient {
 
                     hero.CurrentAnimation = "WalkUp";
                     hero.Animate = true;
+                    break;
+                case Key.Return:
+                    // todo: getnpcname and id, start interaction
+                    if (CurrentNPC != 0) {
+                        net.SendBinToServer(GameNet.c_interact_getquesttext, 1, 0, "");
+                    } else {
+                        CurrentNPC = 2660;
+                        net.SendBinToServer(GameNet.c_interact_getquesttitles, CurrentNPC, 0, "");
+                    }
+
                     break;
                 case Key.Escape:
                 case Key.Q:
