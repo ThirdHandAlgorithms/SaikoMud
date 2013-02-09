@@ -4,6 +4,8 @@
 #include "Character.h"
 #include <Groundfloor/Materials/GFGarbageCollector.h>
 
+#include "../Globals.h"
+
 CWorld::CWorld() : TGFFreeable() {
    worldids.autoClear = false;
    worldids.resizeVector(1024);
@@ -124,7 +126,13 @@ void CWorld::reloadNpcs() {
 
    TSquirrelReturnData errData;
 
-   TGFString sql("select * from `char` where account_id=0");
+   TGFString sqlPrepareDBSync("update `char` set current_worldid=NULL where account_id=0");
+   qry.setQuery(&sqlPrepareDBSync);
+   if ( !qry.open(&errData) ) {
+      printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
+   }
+
+   TGFString sql("select * from `char` where account_id=0 order by id asc");
    qry.setQuery(&sql);
    if ( qry.open(&errData) ) {
       while ( qry.next() ) {
@@ -140,6 +148,43 @@ void CWorld::reloadNpcs() {
    } else {
       printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
    }
+
+   for (unsigned int j = 0; j < this->npcs.size(); j++) {
+      c = static_cast<CCharacter *>(this->npcs.elementAt(j));
+      Global_CharacterUpdate()->schedule(c);
+   }
+}
+
+int CWorld::getNpcsInRoom_fromdb(long x, long y, TGFVector *v) {
+   TMySQLSquirrel qry( this->conn );
+   TGFBRecord rec;
+
+   int cTotal = 0;
+
+   TSquirrelReturnData errData;
+
+   TGFString sql("select current_worldid from `char` where x=:x and y=:y and account_id=0 and current_worldid is not null");
+   qry.setQuery(&sql);
+   qry.findOrAddParam("x")->setInteger(x);
+   qry.findOrAddParam("y")->setInteger(y);
+   if ( qry.open(&errData) ) {
+      while ( qry.next() ) {
+         qry.fetchRecord(&rec);
+
+         long worldid = rec.getValue(0)->asInteger();
+         CCharacter *c = this->getCharacter(worldid);
+         if (c != NULL) {
+            v->addElement(c);
+            cTotal++;
+         }
+      }
+
+      qry.close();
+   } else {
+      printf("Error %d: %s\n", errData.errorcode, errData.errorstring.getValue());
+   }
+
+   return cTotal;
 }
 
 CCharacter *CWorld::getNpcByName(TGFString *s) {
@@ -173,7 +218,6 @@ bool CWorld::hasNPCsAt(long x, long y) {
 }
 
 void CWorld::preloadInteriors( long x, long y ) {
-   CRoom *r;
 
 }
 
@@ -207,7 +251,7 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
          if ( (x == j) && (y == i) ) {
             CRoom *room = this->getRoom(j,i);
             if ( room != NULL ) {
-               if (this->hasNPCsAt(i,j)) {
+               if (this->hasNPCsAt(j,i)) {
                   line.append(static_cast<char>(97 + room->envtype.get()));
                } else {
                   line.append_ansi("@");
@@ -218,7 +262,7 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
          } else {
             CRoom *room = this->getRoom(j,i);
             if ( room != NULL ) {
-               if (this->hasNPCsAt(i,j)) {
+               if (this->hasNPCsAt(j,i)) {
                   line.append(static_cast<char>((65 + room->envtype.get())));
                } else {
                   line.append(static_cast<char>((48 + room->envtype.get())));
@@ -320,7 +364,7 @@ void CWorld::loadNeededQuests(CCharacter *cNpc) {
          quest->title.setValue( rec.getValue(fld_title)->asString() );
          quest->story.setValue( rec.getValue(fld_story)->asString() );
 
-         if (this->quests.size() < quest->id) {
+         if (this->quests.size() <= quest->id) {
             this->quests.resizeVector(quest->id + 1);
             this->quests.setElementCount(quest->id + 1);
          }
@@ -386,3 +430,4 @@ void CWorld::printf_world_stats(bool preloadThings) {
       //combats.size()
    );
 }
+

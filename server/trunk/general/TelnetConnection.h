@@ -21,12 +21,14 @@
 #define c_interact_getquesttitles 0x20000021
 #define c_interact_getquesttext 0x20000022
 
+#define c_radar_getnearbynpcs 0x00000101
+#define c_radar_getnearbyplayers 0x00000102
 
 #define c_response_lastactioninfo 0x10010000
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
 
-#define c_response_npcnames 0x30110000
+#define c_response_npcinfo 0x30110000
 #define c_response_dialog 0x20120000
 
 #define c_response_questtitle 0x30130000
@@ -58,6 +60,7 @@ protected:
    void inform_map();
    void inform_questtitle(DWORD32 iQuestId, TGFString *s);
    void inform_questtext(DWORD32 iQuestId, TGFString *s);
+   void inform_npcinfo(DWORD32 iWorldId, TGFString *s);
 
    //void inform_currentplayerstats();
 

@@ -41,6 +41,9 @@ protected:
    // indexed questlists - auto-free
    TGFVector quests;
 
+   // todo: items to load on demand
+   // TGFVector items;
+
    bool hasNPCsAt(long x, long y);
 
    void loadNeededQuests(CCharacter *cNpc);
@@ -56,6 +59,8 @@ public:
    void endCombat( CCombat *c );
 
    void preloadInteriors( long x, long y );
+
+   int getNpcsInRoom_fromdb(long x, long y, TGFVector *v);
 
    CCharacter *getNpcByName(TGFString *s);
 

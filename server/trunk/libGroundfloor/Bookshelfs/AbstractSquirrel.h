@@ -3,10 +3,10 @@
 #define __AbstractSquirrel_H
 
 #include "../Atoms/GFFreeable.h"
+#include "../Atoms/GFLockable.h"
 
 #include "GFBRecord.h"
 #include "GFBFields.h"
-
 
 #include "../Molecules/GFBaseCommunicator.h"
 
@@ -20,6 +20,8 @@ class TAbstractSquirrelConnection: public TGFFreeable {
    protected:
       bool bConnected;
    public:
+      TGFLockable lock;
+
       TAbstractSquirrelConnection() : TGFFreeable() {
          bConnected = false;
       };

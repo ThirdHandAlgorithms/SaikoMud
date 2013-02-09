@@ -10,6 +10,8 @@
    #include <pthread.h>
 #endif
 
+#include "../Molecules/GFCallbacks.h"
+
 /** TGFThread creates a new native thread where the execution code is called from.
  *  Add your own code by overriding the execute() function, this function gets
  *  called every given interval during the timespan of the thread.
@@ -66,6 +68,9 @@ public:
    void executionloop();
 };
 
+
+void addThreadStartNotify(TGFNotifyAbstract<TGFThread *> *pFunc);
+void addThreadEndNotify(TGFNotifyAbstract<TGFThread *> *pFunc);
 
 /***************************************************************************/
 #endif // __GFThread_H_
