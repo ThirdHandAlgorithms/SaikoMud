@@ -222,6 +222,19 @@ void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s) {
    }
 }
 
+void CTelnetConnection::inform_npcinfo(DWORD32 iWorldId, TGFString *s) {
+   TGFString tmp(s);
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_npcinfo, iWorldId, 0, &tmp);
+   }
+}
+
 // todo: this function is way too long for a command-parser, need to buffer messages in queue and process 1 by 1
 void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
    bool bActionOk = false;
@@ -328,6 +341,20 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                if (intparam1 == 2) {
                   sendToGlobalChatChannel( this, &s );
                }
+            } else if (command == c_radar_getnearbynpcs) {
+               TGFVector v;
+               v.autoClear = false;
+               int c = this->gameintf.radar_getNearbyNpcs(&v);
+               if (c > 0) {
+                  for (int i = 0; i < c; i++) {
+                     CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
+
+                     this->inform_npcinfo( c->WorldId, c->name.link() );
+                  }
+               }
+            } else if (command == c_radar_getnearbyplayers) {
+               // ...
+               bActionOk = false;
             } else if (command == c_interact_greet) {
                bActionOk = this->gameintf.interact_greet(intparam1);
             } else if (command == c_interact_getquesttitles) {

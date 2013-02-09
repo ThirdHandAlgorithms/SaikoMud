@@ -72,6 +72,9 @@ void CCharacter::load() {
          this->x.set( rec.getValue(flds.getFieldIndex_ansi("x"))->asInteger() );
          this->y.set( rec.getValue(flds.getFieldIndex_ansi("y"))->asInteger() );
          this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
+
+         // wordt intern bijgehouden
+         //this->WorldId = rec.getValue(flds.getFieldIndex_ansi("current_worldid"))->asInteger();
       }
 
       qry.close();
@@ -81,7 +84,7 @@ void CCharacter::load() {
 }
 
 void CCharacter::save() {
-   TGFString sql("update `char` set totalxp=:totalxp, level=:level, money=:money, x=:x, y=:y where id=:id");
+   TGFString sql("update `char` set totalxp=:totalxp, level=:level, money=:money, x=:x, y=:y, current_worldid=:current_worldid where id=:id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
    qry.findOrAddParam("id")->setInteger(this->id.internalGet());
@@ -91,7 +94,8 @@ void CCharacter::save() {
    qry.findOrAddParam("x")->setInteger(this->x.get());
    qry.findOrAddParam("y")->setInteger(this->y.get());
    qry.findOrAddParam("hp")->setInteger(this->currenthealthpool.get());
-   
+   qry.findOrAddParam("current_worldid")->setInteger(this->WorldId);
+
    TSquirrelReturnData err;
    if ( qry.open(&err) ) {
       qry.close();

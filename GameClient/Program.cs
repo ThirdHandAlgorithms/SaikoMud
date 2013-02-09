@@ -18,6 +18,11 @@ namespace GameClient {
         public String Text;
     };
 
+    class CNPC {
+        public UInt32 WorldID;
+        public String Name;
+    };
+
     class Program {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
@@ -51,6 +56,8 @@ namespace GameClient {
         private byte RoomEnvType = 0;
 
         private List<CQuest> QuestsAvailable = new List<CQuest>();
+        private List<CNPC> NPCsAvailable = new List<CNPC>();
+
         private String StrCurrentQuestTitle = "";
         private List<String> CurrentQuestText = null;
         private UInt32 CurrentQuestId = 0;
@@ -137,6 +144,8 @@ namespace GameClient {
             net.questtitlesinfo += OnQuestTitleInfo;
             net.questtextinfo += OnQuestTextInfo;
 
+            net.npcinfo += OnNPCInfo;
+
             net.Connect();
 
             LoadResources();
@@ -169,6 +178,18 @@ namespace GameClient {
             RoomEnvType = (byte)(intparam1 & 0xff);
 
             frmDebug.addMessage(str + crlf[0]);
+
+            NPCsAvailable.Clear();
+
+            net.SendBinToServer(GameNet.c_radar_getnearbynpcs, 0, 0, "");
+        }
+
+        public void OnNPCInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            CNPC npc = new CNPC();
+            npc.WorldID = intparam1;
+            npc.Name = str;
+
+            NPCsAvailable.Add(npc);
         }
 
         public void OnQuestTitleInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -532,36 +553,57 @@ namespace GameClient {
 
                     hero.CurrentAnimation = "WalkLeft";
                     hero.Animate = true;
+
+                    CurrentNPC = 0;
+                    CurrentQuestId = 0;
                     break;
                 case Key.RightArrow:
                     net.SendBinToServer(GameNet.c_run_walkright, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkRight";
                     hero.Animate = true;
+
+                    CurrentNPC = 0;
+                    CurrentQuestId = 0;
                     break;
                 case Key.DownArrow:
                     net.SendBinToServer(GameNet.c_run_walkbackwards, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkDown";
                     hero.Animate = true;
+
+                    CurrentNPC = 0;
+                    CurrentQuestId = 0;
                     break;
                 case Key.UpArrow:
                     net.SendBinToServer(GameNet.c_run_walkforward, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkUp";
                     hero.Animate = true;
+
+                    CurrentNPC = 0;
+                    CurrentQuestId = 0;
                     break;
                 case Key.Return:
                     // todo: getnpcname and id, start interaction
                     if (CurrentNPC != 0) {
-                        net.SendBinToServer(GameNet.c_interact_getquesttext, 1, 0, "");
+                        if (this.QuestsAvailable.Count() > 0) {
+                            net.SendBinToServer(GameNet.c_interact_getquesttext, this.QuestsAvailable[0].QuestID, 0, "");
+                        }
                     } else {
-                        CurrentNPC = 2660;
-                        net.SendBinToServer(GameNet.c_interact_getquesttitles, CurrentNPC, 0, "");
+                        if (this.NPCsAvailable.Count() > 0) {
+                            CurrentNPC = this.NPCsAvailable[0].WorldID;
+                            this.QuestsAvailable.Clear();
+                            net.SendBinToServer(GameNet.c_interact_getquesttitles, CurrentNPC, 0, "");
+                        }
                     }
 
                     break;
                 case Key.Escape:
+                    CurrentNPC = 0;
+                    CurrentQuestId = 0;
+
+                    break;
                 case Key.Q:
                     Events.QuitApplication();
                     break;

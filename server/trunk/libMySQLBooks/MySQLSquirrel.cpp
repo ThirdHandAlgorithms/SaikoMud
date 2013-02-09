@@ -11,6 +11,9 @@
 
 #include "MySquirrelUtils.h"
 
+#include <Groundfloor/Materials/GFThread.h>
+#include <Groundfloor/Molecules/GFCallbacks.h>
+
 bool initMySQLBooks() {
    return !mysql_library_init( 0, 0, 0 );
 }
@@ -29,10 +32,22 @@ TMySQLSquirrelConnection::TMySQLSquirrelConnection() : TRemoteSquirrelConnection
    port.set( 3306 );
    username.set( "root" );
    password.set( "" );
+
+   addThreadStartNotify( GFCreateNotify(TGFThread *, TMySQLSquirrelConnection, this, &TMySQLSquirrelConnection::startThreadNotify) );
+   addThreadEndNotify( GFCreateNotify(TGFThread *, TMySQLSquirrelConnection, this, &TMySQLSquirrelConnection::endThreadNotify) );
 }
 
 TMySQLSquirrelConnection::~TMySQLSquirrelConnection() {
 }
+
+void TMySQLSquirrelConnection::startThreadNotify(TGFThread *aThread) {
+   mysql_thread_init();
+}
+
+void TMySQLSquirrelConnection::endThreadNotify(TGFThread *aThread) {
+   mysql_thread_end();
+}
+
 
 bool TMySQLSquirrelConnection::connect() {
    mysql_init( pMysqlObj );
@@ -209,9 +224,11 @@ bool TMySQLSquirrel::open( TSquirrelReturnData *errData ) {
    this->prepareQuery();
 
    if ( this->connection->isConnected() ) {
+      this->connection->lock.lockWhenAvailable();
       int iError = mysql_real_query( static_cast<TMySQLSquirrelConnection *>(this->connection)->getMySQLObj(), sCurrentQuery.getValue(), sCurrentQuery.getLength() );
       if ( iError == 0 ) {
          pCurrentResult = mysql_store_result( static_cast<TMySQLSquirrelConnection *>(this->connection)->getMySQLObj() );
+         this->connection->lock.unlock();
 
          iRecordCount = 0 ;
 
@@ -231,6 +248,7 @@ bool TMySQLSquirrel::open( TSquirrelReturnData *errData ) {
 
          return true;
       } else {
+         this->connection->lock.unlock();
 
          if ( errData != NULL ) {
             errData->eof = false;

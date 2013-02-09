@@ -46,6 +46,7 @@ int main(int argc, char* argv[]) {
                         auto c = Global_World()->getNpcByName(GFDisposableStr("npc_mister_b"));
                         if (c!=NULL){
                            TGFVector v;
+                           v.autoClear = false;
                            auto i = intf.interact_getQuests(c->WorldId, &v);
                            for (int j = 0; j < i; j++) {
                               auto q = static_cast<CQuest *>(v.elementAt(j));

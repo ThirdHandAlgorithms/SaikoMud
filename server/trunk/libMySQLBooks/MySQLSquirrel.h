@@ -16,6 +16,8 @@
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
 
+#include <Groundfloor/Materials/GFThread.h>
+#include <Groundfloor/Atoms/GFLockable.h>
 
 bool initMySQLBooks();
 bool finiMySQLBooks();
@@ -28,6 +30,9 @@ class TMySQLSquirrelConnection: public TRemoteSquirrelConnection {
       bool bCompression;
 
       void debug( const char *sMsg );
+
+      void startThreadNotify(TGFThread *aThread);
+      void endThreadNotify(TGFThread *aThread);
    public:
       TMySQLSquirrelConnection();
       ~TMySQLSquirrelConnection();
@@ -49,8 +54,8 @@ class TMySQLSquirrel: public TRemoteSQL {
       TGFString sCurrentQuery;
       TGFBFields aCurrentFields;
 
-      unsigned int iCurrentRecord;
-      unsigned int iRecordCount;
+      unsigned long iCurrentRecord;
+      unsigned long iRecordCount;
       bool bAnsiMode;
 
       void retreiveFields( TGFBFields *aFields );

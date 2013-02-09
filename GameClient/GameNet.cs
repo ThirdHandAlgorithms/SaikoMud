@@ -29,6 +29,7 @@ namespace GameClient {
         public event GameNetCallback chatmsginfo;
         public event GameNetCallback questtitlesinfo;
         public event GameNetCallback questtextinfo;
+        public event GameNetCallback npcinfo;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -45,6 +46,9 @@ namespace GameClient {
         public const UInt32 c_interact_getquesttitles = 0x20000021;
         public const UInt32 c_interact_getquesttext = 0x20000022;
 
+        public const UInt32 c_radar_getnearbynpcs = 0x00000101;
+        public const UInt32 c_radar_getnearbyplayers = 0x00000102;
+
         // responses
         public const UInt32 c_response_lastactioninfo = 0x10010000;
         public const UInt32 c_response_roominfo = 0x30020000;
@@ -52,7 +56,7 @@ namespace GameClient {
 
         public const UInt32 c_response_chatmessage = 0x30100000;
 
-        public const UInt32 c_response_npcnames = 0x30110000;
+        public const UInt32 c_response_npcinfo = 0x30110000;
         public const UInt32 c_response_dialog = 0x20120000;
 
         public const UInt32 c_response_questtitle = 0x30130000;
@@ -129,6 +133,8 @@ namespace GameClient {
                 questtitlesinfo.Invoke(command, intparam1, intparam2, sDataStr);
             } else if (command == c_response_questtext) {
                 questtextinfo.Invoke(command, intparam1, intparam2, sDataStr);
+            } else if (command == c_response_npcinfo) {
+                npcinfo.Invoke(command, intparam1, intparam2, sDataStr);
             }
 
             

@@ -15,6 +15,18 @@
 
 
 
+TGFMultiNotify<TGFThread *> GThreadStartNotify;
+TGFMultiNotify<TGFThread *> GThreadEndNotify;
+
+void addThreadStartNotify(TGFNotifyAbstract<TGFThread *> *pFunc) {
+   GThreadStartNotify.addNotify(pFunc);
+}
+
+void addThreadEndNotify(TGFNotifyAbstract<TGFThread *> *pFunc) {
+   GThreadEndNotify.addNotify(pFunc);
+}
+
+
 // non-member function to be spawned as a thread by the OS, executes our own thread-loop
 THREADRETURN runExecute( void *pParam ) {
    static_cast<TGFThread *>(pParam)->executionloop();
@@ -108,6 +120,7 @@ void TGFThread::executionloop() {
    bRunning = true;
    bStartedExecutionMethod = true;
 
+   GThreadStartNotify.execute(this);
    try {
 
       while ( !bShouldTerminate ) {
@@ -126,6 +139,8 @@ void TGFThread::executionloop() {
    }
 
    bRunning = false;
+
+   GThreadEndNotify.execute(this);
 }
 
 void TGFThread::setInterval( unsigned int iInterval ) {

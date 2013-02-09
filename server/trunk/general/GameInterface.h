@@ -50,9 +50,14 @@ public:
    //bool attack_stop();
    // ...
 
+   int radar_getNearbyNpcs(TGFVector *v);
+   int radar_getNearbyPlayers(TGFVector *v);
+
    bool interact_greet(DWORD32 iCharId);
    int interact_getQuests(DWORD32 iCharId, TGFVector *v);
    bool interact_getQuestText(DWORD32 iQuestId, TGFString *s);
+
+
 
    // special GM actions
    bool run_teleport( long x, long y );

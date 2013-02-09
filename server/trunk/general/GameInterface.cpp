@@ -281,3 +281,21 @@ void CGameInterface::StartCombatDummy() {
    combat->joinCombat(this->loggedInCharacter);
    combat->start();
 }
+
+int CGameInterface::radar_getNearbyNpcs(TGFVector *v) {
+   this->DoChecks();
+
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
+
+   return Global_World()->getNpcsInRoom_fromdb(x, y, v);
+}
+
+int CGameInterface::radar_getNearbyPlayers(TGFVector *v) {
+   this->DoChecks();
+
+   // todo: radar_getNearbyPlayers()
+
+   return 0;
+}
+
