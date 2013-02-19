@@ -5,6 +5,7 @@ CAccount::CAccount( TMySQLSquirrelConnection *pConn ) : TGFFreeable() {
    this->conn = pConn;
    this->loggedin = false;
    this->id = 0;
+   this->isAdmin = false;
 }
 
 CAccount::~CAccount() {
@@ -18,7 +19,7 @@ void CAccount::logout() {
 bool CAccount::login( TGFString *sUser, TGFString *sPass ) {
    this->logout();
 
-   TGFString sql("select id from account where login=:user and password=SHA1(:pass)");
+   TGFString sql("select id, is_admin from account where login=:user and password=SHA1(:pass)");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
    qry.findOrAddParam("user")->setString(sUser);
@@ -30,6 +31,7 @@ bool CAccount::login( TGFString *sUser, TGFString *sPass ) {
          TGFBRecord rec;
          qry.fetchRecord(&rec);
          this->id = rec.getValue(0)->asInteger();
+         this->isAdmin = (rec.getValue(1)->asInteger() == 1);
          this->loggedin = true;
       }
       qry.close();

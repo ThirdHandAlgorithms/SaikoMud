@@ -53,11 +53,9 @@ public:
    int radar_getNearbyNpcs(TGFVector *v);
    int radar_getNearbyPlayers(TGFVector *v);
 
-   bool interact_greet(DWORD32 iCharId);
+   bool interact_greet(DWORD32 iCharId, TGFString *sGreeting);
    int interact_getQuests(DWORD32 iCharId, TGFVector *v);
-   bool interact_getQuestText(DWORD32 iQuestId, TGFString *s);
-
-
+   bool interact_getQuestText(DWORD32 iQuestId, TGFString *s, long *rewards_xp);
 
    // special GM actions
    bool run_teleport( long x, long y );

@@ -12,7 +12,10 @@ protected:
 
    unsigned long id;
 
+
 public:
+   bool isAdmin;
+
    CAccount( TMySQLSquirrelConnection *pConn );
    ~CAccount();
 

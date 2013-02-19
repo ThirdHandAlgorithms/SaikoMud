@@ -23,13 +23,17 @@ void CGameInterface::DoChecks() {
    if (this->loggedInAccount == NULL) {
       this->sLastactionInfo.setValue_ansi("You're not logged in.");
 
-      throw;
+      throw 1;
+   }
+
+   if (this->loggedInAccount->isAdmin) {
+      return;
    }
 
    if (this->loggedInCharacter == NULL) {
       this->sLastactionInfo.setValue_ansi("You're not in character.");
 
-      throw; 
+      throw 2; 
    }
 }
 
@@ -234,8 +238,19 @@ bool CGameInterface::attack_start(DWORD32 iCharId) {
    return false;
 }
 
-bool CGameInterface::interact_greet(DWORD32 iCharId) {
+bool CGameInterface::interact_greet(DWORD32 iCharId, TGFString *sGreeting) {
    this->DoChecks();
+
+   CCharacter *cTarget = Global_World()->getCharacter(iCharId);
+   if (cTarget == NULL) {
+      this->sLastactionInfo.setValue_ansi("Error");
+   } else {
+      if (cTarget->isNPC.get()) {
+         return Global_World()->getGreeting(iCharId, this->loggedInCharacter, sGreeting);
+      } else {
+         this->sLastactionInfo.setValue_ansi("Error");
+      }
+   }
 
    return false;
 }
@@ -261,10 +276,10 @@ int CGameInterface::interact_getQuests(DWORD32 iCharId, TGFVector *v) {
    return 0;
 }
 
-bool CGameInterface::interact_getQuestText(DWORD32 iQuestId, TGFString *s) {
+bool CGameInterface::interact_getQuestText(DWORD32 iQuestId, TGFString *s, long *rewards_xp) {
    this->DoChecks();
 
-   return Global_World()->getQuestStory(iQuestId, this->loggedInCharacter, s);
+   return Global_World()->getQuestStory(iQuestId, this->loggedInCharacter, s, rewards_xp);
 }
 
 void CGameInterface::StartCombatDummy() {

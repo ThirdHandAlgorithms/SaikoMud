@@ -17,16 +17,19 @@ protected:
    TGFVector quests;
 
    void load();
+
 public:
    DWORD32 WorldId;
  
    TGFProperty<unsigned long> id;
-   TGFProperty<unsigned int> xp;
-   TGFProperty<unsigned int> money;
+   TGFProperty<unsigned long> xp;
+   TGFProperty<unsigned long> money;
    TGFProperty<long> x;
    TGFProperty<long> y;
 
    TGFProperty<bool> isNPC;
+
+   TGFStringProperty greeting;
 
    CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool isNPC );
    CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery );

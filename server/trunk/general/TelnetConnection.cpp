@@ -35,7 +35,10 @@ bool CTelnetConnection::inBinaryMode() {
 }
 
 void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intparam2, TGFString *s) {
-   DWORD32 strlen = s->getLength();
+   DWORD32 strlen = 0;
+   if (s != NULL) {
+      strlen = s->getLength();
+   }
 
    TGFString tmp;
    tmp.append((command & 0xff000000) >> 24);
@@ -209,16 +212,25 @@ void CTelnetConnection::inform_questtitle(DWORD32 iQuestId, TGFString *s) {
    }
 }
 
-void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s) {
+void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s, long rewards_xp) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
       if (tmp.getLength() > 0) {
          tmp.append_ansi("\r\n");
+
+         if (rewards_xp > 0) {
+            tmp.append_ansi("Will reward ");
+            TGFBValue v;
+            v.setInteger(rewards_xp);
+            tmp.append(v.asString());
+            tmp.append_ansi(" XP on completion\r\n");
+         }
+
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_questtext, iQuestId, 0, &tmp);
+      this->sendBin(c_response_questtext, iQuestId, rewards_xp, &tmp);
    }
 }
 
@@ -234,6 +246,35 @@ void CTelnetConnection::inform_npcinfo(DWORD32 iWorldId, TGFString *s) {
       this->sendBin(c_response_npcinfo, iWorldId, 0, &tmp);
    }
 }
+
+void CTelnetConnection::inform_npcdialog(DWORD32 iWorldId, TGFString *s) {
+   TGFString tmp(s);
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_dialog, iWorldId, 0, &tmp);
+   }
+}
+
+void CTelnetConnection::inform_earnxp(long xp, long totalxp) {
+   TGFString tmp("");
+
+   if (!bBinaryMode) {
+      tmp.append_ansi("You earn ");
+      TGFBValue v;
+      v.setInteger(xp);
+      tmp.append(v.asString());
+      tmp.append_ansi(" XP\r\n");
+      this->send(&tmp);
+   } else {
+      this->sendBin(c_event_earnsxp, xp, totalxp, NULL);
+   }
+}
+
 
 // todo: this function is way too long for a command-parser, need to buffer messages in queue and process 1 by 1
 void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
@@ -276,7 +317,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             delete v;
          } else if ( copy.startsWith_ansi("/wr") ) {
             this->gameintf.ReloadWorld();
-            bActionOk = true;
+            bActionOk = false;   // no character room info
          } else if ( copy.startsWith_ansi("/combatdummy") ) {
             this->gameintf.StartCombatDummy();
             bActionOk = true;
@@ -316,9 +357,9 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
          DWORD32 intparam2;
          TGFString s;
 
-         bool bMovementActionOk = false;
+         while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s) )  {
+            bool bMovementActionOk = false;
 
-         if ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s) )  {
             printf("received command %08x\n", command);
             if (command == c_run_walkbackwards) {
                bActionOk = this->gameintf.run_walkbackwards();
@@ -356,7 +397,11 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                // ...
                bActionOk = false;
             } else if (command == c_interact_greet) {
-               bActionOk = this->gameintf.interact_greet(intparam1);
+               TGFString s;
+               bActionOk = this->gameintf.interact_greet(intparam1, &s);
+               if (bActionOk) {
+                  this->inform_npcdialog(intparam1, &s);
+               }
             } else if (command == c_interact_getquesttitles) {
                TGFVector v;
                v.autoClear = false;
@@ -374,10 +419,11 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             } else if (command == c_interact_getquesttext) {
                TGFString s;
 
-               bActionOk = this->gameintf.interact_getQuestText(intparam1, &s);
+               long rewards_xp = 0;
+               bActionOk = this->gameintf.interact_getQuestText(intparam1, &s, &rewards_xp);
                
                if (bActionOk) {
-                  this->inform_questtext(intparam1, &s);
+                  this->inform_questtext(intparam1, &s, rewards_xp);
                }
             }
 

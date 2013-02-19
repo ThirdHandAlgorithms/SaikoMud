@@ -6,6 +6,8 @@
 #include "../Molecules/GFCallbacks.h"
 #include "../Molecules/GFString.h"
 
+#include "../Atoms/GFLockable.h"
+
 /** TGFBasicProperty, don't use this base class.
   *  Properties are object containers with functions to get/set the object (or object-pointer).
   *  The internalSet() and internalGet() functions are public to serve the implementor functions of the
@@ -17,6 +19,7 @@ class TGFBasicProperty: public TGFFreeable
 {
    protected:
       T anObject;
+      TGFLockable aLock;
    public:
       /// initializes internal object to 0
       TGFBasicProperty() : TGFFreeable() {
@@ -41,6 +44,12 @@ class TGFBasicProperty: public TGFFreeable
       /// returns the internal object
       T internalGet() const {
          return this->anObject;
+      }
+
+      void lockedAdd(T anotherObject) {
+         aLock.lockWhenAvailable();
+         this->anObject += anotherObject;
+         aLock.unlock();
       }
 };
 

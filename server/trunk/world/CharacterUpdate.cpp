@@ -2,6 +2,8 @@
 #include "CharacterUpdate.h"
 
 
+#include "../Globals.h"
+
 CCharacterUpdate::CCharacterUpdate() : TGFThread() {
    this->start();
 }
