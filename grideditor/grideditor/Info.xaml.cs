@@ -24,7 +24,31 @@ namespace grideditor {
             InitializeComponent();
         }
 
-        public void setRoomInfo( Point room, string description, RoomInfoCallback func ) {
+        public void feedEnvtypes( saikomudDataSet.environmentDataTable table ) {
+            comboBox1.Items.Clear();
+
+            //comboBox1.ItemsSource = from r in table.AsEnumerable() select r.name;
+
+
+            foreach (saikomudDataSet.environmentRow pRow in table.Rows) {
+                comboBox1.Items.Add( new EnvTypeItem(pRow) );
+            }
+        }
+
+        protected int getCbxIndexOfEnv( uint id ) {
+            int i = 0;
+
+            foreach (EnvTypeItem item in comboBox1.Items) {
+                if (item.id == id) {
+                    return i;
+                }
+                i++;
+            }
+
+            return -1;
+        }
+
+        public void setRoomInfo( Point room, string description, uint envtype, bool traversable, RoomInfoCallback func ) {
             xy.X = room.X;
             xy.Y = room.Y;
             this.desc = description;
@@ -34,15 +58,38 @@ namespace grideditor {
 
             textBox1.Clear();
             textBox1.Text = description;
+
+            checkBox1.IsChecked = traversable;
+
+            comboBox1.SelectedIndex = getCbxIndexOfEnv(envtype);
         }
 
         private void button1_Click(object sender, RoutedEventArgs e) {
             if ( func != null ) {
-                func(xy, textBox1.Text);
+                EnvTypeItem item = (EnvTypeItem)(comboBox1.SelectedItem);
+                func(xy, textBox1.Text, item.id, true);
             }
             textBox1.Focus();
         }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e) {
+
+        }
     }
 
-    public delegate void RoomInfoCallback( Point room, string description );
+    public delegate void RoomInfoCallback(Point room, string description, uint envtype, bool traversable);
+
+    public class EnvTypeItem: ComboBoxItem {
+        public uint id;
+
+        public EnvTypeItem(saikomudDataSet.environmentRow pRow) {
+            this.id = (uint)(pRow.id);
+
+            uint rgb = uint.Parse(pRow.flatcolor, System.Globalization.NumberStyles.AllowHexSpecifier);
+            Color c = Color.FromRgb((byte)((rgb >> 16) & 255), (byte)((rgb >> 8) & 255), (byte)(rgb & 255));
+
+            Content = pRow.name;
+            Background = new SolidColorBrush(c);
+        }
+    }
 }

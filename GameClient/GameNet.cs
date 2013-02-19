@@ -30,6 +30,8 @@ namespace GameClient {
         public event GameNetCallback questtitlesinfo;
         public event GameNetCallback questtextinfo;
         public event GameNetCallback npcinfo;
+        public event GameNetCallback dialog;
+        public event GameNetCallback earnsxp;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -54,14 +56,16 @@ namespace GameClient {
         public const UInt32 c_response_roominfo = 0x30020000;
         public const UInt32 c_response_asciimap = 0x10030000;
 
+        public const UInt32 c_event_earnsxp = 0x20040001;
+
         public const UInt32 c_response_chatmessage = 0x30100000;
 
         public const UInt32 c_response_npcinfo = 0x30110000;
-        public const UInt32 c_response_dialog = 0x20120000;
+        public const UInt32 c_response_dialog = 0x30120000;
 
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
-
+        
 
         public GameNet() {
             EventHandler = new Thread(new ThreadStart(ThreadProc));
@@ -112,29 +116,42 @@ namespace GameClient {
                 i += 4;
 
                 if (sData.Length >= (i + datlen)) {
-                    sDataStr = System.Text.Encoding.ASCII.GetString( sData, i, (int)(datlen) );
+                    sDataStr = System.Text.Encoding.ASCII.GetString(sData, i, (int)(datlen));
 
                     int newlen = (int)(sData.Length - i - datlen);
                     byte[] sCopyData = new byte[newlen];
                     Buffer.BlockCopy(sData, (int)(i + datlen), sCopyData, 0, newlen);
                     sData = sCopyData;
                 }
+            } else {
+                int newlen = (int)(sData.Length - i);
+                byte[] sCopyData = new byte[newlen];
+                Buffer.BlockCopy(sData, (int)(i), sCopyData, 0, newlen);
+                sData = sCopyData;
             }
 
-            if (command == c_response_lastactioninfo) {
-                actioninfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_roominfo) {
-                roominfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_asciimap) {
-                mapinfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_chatmessage) {
-                chatmsginfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_questtitle) {
-                questtitlesinfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_questtext) {
-                questtextinfo.Invoke(command, intparam1, intparam2, sDataStr);
-            } else if (command == c_response_npcinfo) {
-                npcinfo.Invoke(command, intparam1, intparam2, sDataStr);
+            try {
+                if (command == c_response_lastactioninfo) {
+                    actioninfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_roominfo) {
+                    roominfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_asciimap) {
+                    mapinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_chatmessage) {
+                    chatmsginfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_questtitle) {
+                    questtitlesinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_questtext) {
+                    questtextinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_npcinfo) {
+                    npcinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_dialog) {
+                    dialog.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_earnsxp) {
+                    earnsxp.Invoke(command, intparam1, intparam2, sDataStr);
+                }
+            } catch {
+                // ignore
             }
 
             
@@ -150,9 +167,11 @@ namespace GameClient {
             while (isConnected) {
                 try {
                     sSmallBuffer = ReceiveFromServer();
-                    Int32 LastLength = sLargeBuffer.Length;
-                    Array.Resize(ref sLargeBuffer, LastLength + sSmallBuffer.Length);
-                    Buffer.BlockCopy(sSmallBuffer, 0, sLargeBuffer, LastLength, sSmallBuffer.Length);
+                    if (sSmallBuffer.Length > 0) {
+                        Int32 LastLength = sLargeBuffer.Length;
+                        Array.Resize(ref sLargeBuffer, LastLength + sSmallBuffer.Length);
+                        Buffer.BlockCopy(sSmallBuffer, 0, sLargeBuffer, LastLength, sSmallBuffer.Length);
+                    }
 
                     if (sLargeBuffer.Length != 0) {
                         ExtractAndProcess(ref sLargeBuffer);

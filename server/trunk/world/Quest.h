@@ -13,6 +13,8 @@ public:
    TGFString title;
    TGFString story;
    unsigned long prereq_quest_id;
+   long rewards_xp;
+   bool autocomplete;
    
    CQuest();
    ~CQuest();

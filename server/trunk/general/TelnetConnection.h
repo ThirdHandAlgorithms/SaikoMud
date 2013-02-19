@@ -28,8 +28,11 @@
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
 
+#define c_event_earnsxp 0x20040001
+//#define c_event_... 0x20040002
+
 #define c_response_npcinfo 0x30110000
-#define c_response_dialog 0x20120000
+#define c_response_dialog 0x30120000
 
 #define c_response_questtitle 0x30130000
 #define c_response_questtext 0x30140000
@@ -59,9 +62,10 @@ protected:
    void inform_lastaction();
    void inform_map();
    void inform_questtitle(DWORD32 iQuestId, TGFString *s);
-   void inform_questtext(DWORD32 iQuestId, TGFString *s);
+   void inform_questtext(DWORD32 iQuestId, TGFString *s, long rewards_xp);
    void inform_npcinfo(DWORD32 iWorldId, TGFString *s);
-
+   void inform_npcdialog(DWORD32 iWorldId, TGFString *s);
+   
    //void inform_currentplayerstats();
 
    bool decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s);
@@ -79,6 +83,8 @@ public:
    bool matchWithCharacterRef( void *ref );
 
    void append_nickname(TGFString *s);
+
+   void inform_earnxp(long xp, long totalxp);
 };
 
 #endif // __TELNETCONNECTION_H__

@@ -21,6 +21,7 @@ namespace GameClient {
     class CNPC {
         public UInt32 WorldID;
         public String Name;
+        public String CurrentDialog;
     };
 
     class Program {
@@ -36,6 +37,7 @@ namespace GameClient {
 
         private Rectangle MapArea = new Rectangle();
         private Rectangle ActionInfoArea = new Rectangle();
+        private Rectangle EventInfoArea = new Rectangle();
         private Rectangle SlotsAndStatsArea = new Rectangle();
         private Rectangle InfoBoxArea = new Rectangle();
         private Rectangle RoomInfoTextArea = new Rectangle();
@@ -51,6 +53,8 @@ namespace GameClient {
         private GameNet net;
 
         private String StrActionInfo = "";
+        private DateTime LastActionTime = DateTime.Now;
+
         private String StrMapInfo = "";
         private String StrRoomInfo = "";
         private byte RoomEnvType = 0;
@@ -70,6 +74,9 @@ namespace GameClient {
         private SdlDotNet.Graphics.Font font_roominfo;
         private SdlDotNet.Graphics.Font font_questtext;
         private SdlDotNet.Graphics.Font font_questtexttitle;
+
+        private String LastEventStr = "";
+        private DateTime LastEventTime = DateTime.Now;
 
         string[] crlf = { "" + (char)(13) + (char)(10) };
 
@@ -105,6 +112,11 @@ namespace GameClient {
             ActionInfoArea.Height = 25;
             ActionInfoArea.Width = m_vidsurf.Width - 100;
 
+            EventInfoArea.X = 0;
+            EventInfoArea.Y = 25;
+            EventInfoArea.Height = 25;
+            EventInfoArea.Width = m_vidsurf.Width - 100;
+
             MapArea.X = 0;
             MapArea.Y = 25;
             MapArea.Height = m_vidsurf.Height - ActionInfoArea.Height - 100;
@@ -124,10 +136,12 @@ namespace GameClient {
 
             NPCDialogQuestTitleArea.X = 60;
             NPCDialogQuestTitleArea.Y = 60;
+            NPCDialogQuestTitleArea.Width = 450;
+
 
             NPCDialogQuestTextArea.X = 60;
             NPCDialogQuestTextArea.Y = 105;
-            NPCDialogQuestTextArea.Width = 400;
+            NPCDialogQuestTextArea.Width = 350;
             NPCDialogQuestTextArea.Height = 400;
 
 
@@ -145,6 +159,9 @@ namespace GameClient {
             net.questtextinfo += OnQuestTextInfo;
 
             net.npcinfo += OnNPCInfo;
+            net.dialog += OnDialog;
+
+            net.earnsxp += OnEarnXP;
 
             net.Connect();
 
@@ -161,6 +178,7 @@ namespace GameClient {
 
         public void OnActionInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
             StrActionInfo = str;
+            LastActionTime = DateTime.Now;
 
             frmDebug.addMessage(str + crlf[0]);
         }
@@ -188,8 +206,28 @@ namespace GameClient {
             CNPC npc = new CNPC();
             npc.WorldID = intparam1;
             npc.Name = str;
+            npc.CurrentDialog = "";
 
             NPCsAvailable.Add(npc);
+        }
+
+        public void OnDialog(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            foreach (CNPC npc in NPCsAvailable) {
+                if (npc.WorldID == intparam1) {
+                    npc.CurrentDialog = str;
+                    break;
+                }
+            }
+        }
+
+        public CNPC GetKnownNPC(UInt32 iWorldId) {
+            foreach (CNPC npc in NPCsAvailable) {
+                if (npc.WorldID == iWorldId) {
+                    return npc;
+                }
+            }
+
+            return null;
         }
 
         public void OnQuestTitleInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -203,6 +241,14 @@ namespace GameClient {
             //StrCurrentQuestTitle = q.Text;
 
             frmDebug.addMessage(str + crlf[0]);
+        }
+
+        public void OnEarnXP(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            // addxp intparam1
+            // totalxp intparam2
+
+            LastEventStr = "You have earned " + intparam1 + " XP";
+            LastEventTime = DateTime.Now;
         }
 
         public int FindPreviousSpace(String s, int iLastPos) {
@@ -312,39 +358,75 @@ namespace GameClient {
         }
 
         private void RenderActionInfo() {
-            Surface m_ActionInfoSurf = font_actioninfo.Render(StrActionInfo, Color.Black);
+            if (DateTime.Now <= LastActionTime.AddSeconds(5)) {
+                Surface m_ActionInfoSurf = font_actioninfo.Render(StrActionInfo, Color.Black);
+                Video.Screen.Blit(m_ActionInfoSurf, ActionInfoArea);
+            }
 
-            Video.Screen.Blit(m_ActionInfoSurf, ActionInfoArea);
+            if (DateTime.Now <= LastEventTime.AddSeconds(5)) {
+                Surface m_EventInfoSurf = font_actioninfo.Render(LastEventStr, Color.Red);
+                Video.Screen.Blit(m_EventInfoSurf, EventInfoArea);
+            }
         }
 
         private void RenderRoomInfo() {
             Video.Screen.Blit(m_infobox, InfoBoxArea);
 
-            Surface m_RoomInfoSurf = font_actioninfo.Render(StrRoomInfo, Color.Black);
 
-            Video.Screen.Blit(m_RoomInfoSurf, RoomInfoTextArea);
+            var arr = PrepareStringForDisplay(StrRoomInfo, font_questtext, 500);
+
+            Rectangle liner = new Rectangle(RoomInfoTextArea.X, RoomInfoTextArea.Y, RoomInfoTextArea.Width, RoomInfoTextArea.Height);
+
+            foreach (var line in arr) {
+                Surface m_Text = font_questtext.Render(line, Color.Black);
+                Video.Screen.Blit(m_Text, liner);
+
+                liner.Y += m_Text.Height;
+            }
         }
 
         private void RenderNPCDialog() {
             Surface m_QuestTitle;
 
             if (CurrentNPC != 0) {
-                Video.Screen.Blit(m_npcDialogBox, NPCDialogArea);
+                CNPC npc = GetKnownNPC(CurrentNPC);
+                if (npc != null) {
+                    Video.Screen.Blit(m_npcDialogBox, NPCDialogArea);
 
-                // the dialog for when the player is receiving the quests the NPC can give the player
-                if (CurrentQuestId == 0) {
-                    int h = 0;
+                    // the dialog for when the player is receiving the quests the NPC can give the player
+                    if (CurrentQuestId == 0) {
+                        List<String> arr = null;
 
-                    Rectangle r = new Rectangle(NPCDialogQuestTitleArea.X, NPCDialogQuestTitleArea.Y, NPCDialogQuestTitleArea.Width, NPCDialogQuestTitleArea.Height);
+                        Rectangle liner = new Rectangle(NPCDialogQuestTitleArea.X, NPCDialogQuestTitleArea.Y, NPCDialogQuestTitleArea.Width, NPCDialogQuestTitleArea.Height);
 
-                    foreach (var q in QuestsAvailable) {
-                        UInt32 id = q.QuestID;
-                        String s = q.Title;
+                        if (npc.CurrentDialog != "") {
+                            arr = PrepareStringForDisplay(npc.CurrentDialog, font_questtext, NPCDialogQuestTitleArea.Width);
+                            foreach (var line in arr) {
+                                Surface m_Text = font_questtext.Render(line, Color.Black);
+                                Video.Screen.Blit(m_Text, liner);
 
-                        m_QuestTitle = font_actioninfo.Render(s, Color.Black);
-                        Video.Screen.Blit(m_QuestTitle, r);
+                                liner.Y += m_Text.Height;
+                            }
 
-                        r.Y += 30;
+                            if (arr.Count > 0) {
+                                liner.Y += 30;
+                            }
+                        }
+
+                        foreach (var q in QuestsAvailable) {
+                            UInt32 id = q.QuestID;
+                            String s = q.Title;
+
+                            m_QuestTitle = font_actioninfo.Render(s, Color.Black);
+                            Video.Screen.Blit(m_QuestTitle, liner);
+
+                            liner.Y += m_QuestTitle.Height;
+                        }
+
+                        if (QuestsAvailable.Count == 0) {
+                            m_QuestTitle = font_actioninfo.Render(npc.Name + " has no quests for you.", Color.Black);
+                            Video.Screen.Blit(m_QuestTitle, liner);
+                        }
                     }
                 }
 
@@ -594,6 +676,7 @@ namespace GameClient {
                         if (this.NPCsAvailable.Count() > 0) {
                             CurrentNPC = this.NPCsAvailable[0].WorldID;
                             this.QuestsAvailable.Clear();
+                            net.SendBinToServer(GameNet.c_interact_greet, CurrentNPC, 0, "");
                             net.SendBinToServer(GameNet.c_interact_getquesttitles, CurrentNPC, 0, "");
                         }
                     }

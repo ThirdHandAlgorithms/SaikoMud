@@ -6,6 +6,9 @@
 
 #include "../Globals.h"
 
+#include <Groundfloor/Materials/GFFunctions.h>
+
+
 CWorld::CWorld() : TGFFreeable() {
    worldids.autoClear = false;
    worldids.resizeVector(1024);
@@ -114,6 +117,10 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
    }
 
    this->reloadNpcs();
+
+   // todo: bugfix
+
+   // todo: reload quests etc
 }
 
 void CWorld::reloadNpcs() {
@@ -353,6 +360,8 @@ void CWorld::loadNeededQuests(CCharacter *cNpc) {
       int fld_title = flds.getFieldIndex_ansi("title");
       int fld_story = flds.getFieldIndex_ansi("story");
       int fld_prereq = flds.getFieldIndex_ansi("prereq_quest_id");
+      int fld_rewardsxp = flds.getFieldIndex_ansi("rewards_xp");
+      int fld_autocomplete = flds.getFieldIndex_ansi("autocomplete");
 
       while ( qry.next() ) {
          TGFBRecord rec;
@@ -363,6 +372,8 @@ void CWorld::loadNeededQuests(CCharacter *cNpc) {
          quest->prereq_quest_id = rec.getValue(fld_prereq)->asInteger();
          quest->title.setValue( rec.getValue(fld_title)->asString() );
          quest->story.setValue( rec.getValue(fld_story)->asString() );
+         quest->rewards_xp = rec.getValue(fld_rewardsxp)->asInteger();
+         quest->autocomplete = (rec.getValue(fld_autocomplete)->asInteger() == 1);
 
          if (this->quests.size() <= quest->id) {
             this->quests.resizeVector(quest->id + 1);
@@ -379,11 +390,42 @@ void CWorld::loadNeededQuests(CCharacter *cNpc) {
    }
 }
 
-bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory) {
+long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
+   long xp = 0;
+
+   TGFString sql("insert into `questhistory` ( char_id, quest_id, dt_completed) values (:char_id,:quest_id,:dt_completed)");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(cFor->id.get());
+   qry.findOrAddParam("quest_id")->setInteger(q->id);
+   qry.findOrAddParam("dt_completed")->setInt64(GFGetTimestamp());
+   if (qry.open()) {
+      qry.close();
+
+      xp = q->rewards_xp;
+      cFor->xp.lockedAdd(xp);
+      
+      Global_CharacterUpdate()->schedule(cFor);
+
+      // xp earned message before sql update :S - oh well...
+      CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
+      if (tc != NULL) {
+         tc->inform_earnxp(xp, cFor->xp.get());
+      }
+   } else {
+      // do update?
+   }
+
+   return xp;
+}
+
+bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp) {
    CQuest *q = this->getQuest(iQuestId);
    if (q != NULL) {
       if (q->id == iQuestId) {
          sStory->setValue(&(q->story));
+
+         *rewards_xp = q->rewards_xp;
 
          if (cFor != NULL) {
             sStory->replace_ansi("{player}", cFor->name.get());
@@ -391,10 +433,33 @@ bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory) {
             TGFBValue v;
             v.setInteger( cFor->level.get() );
             sStory->replace_ansi("{lvl}", v.asString()->getValue());
+
+            if (q->autocomplete == 1) {
+               *rewards_xp = this->completeQuest(q, cFor);
+            }
          }
 
          return true;
       }
+   }
+
+   return false;
+}
+
+bool CWorld::getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting) {
+   CCharacter *c = this->getCharacter(iCharId);
+   if (c != NULL) {
+      sGreeting->setValue(c->greeting.link());
+
+      if (cFor != NULL) {
+         sGreeting->replace_ansi("{player}", cFor->name.get());
+            
+         TGFBValue v;
+         v.setInteger( cFor->level.get() );
+         sGreeting->replace_ansi("{lvl}", v.asString()->getValue());
+      }
+
+      return true;
    }
 
    return false;
@@ -415,9 +480,7 @@ void CWorld::printf_world_stats(bool preloadThings) {
    s.append_ansi("Number of Quests      : %d\n");
    //s.append_ansi("Number of Combats     : %d\n");
 
-   s.append_ansi("NPC ID (world-id): %d\n");
-
-   CCharacter *c = this->getNpcByName(GFDisposableStr("npc_mister_a"));
+   //s.append_ansi("NPC ID (world-id): %d\n");
 
    printf(
       s.getValue(),
@@ -425,8 +488,7 @@ void CWorld::printf_world_stats(bool preloadThings) {
       characters.size(),
       npcs.size(),
       //worldids.size() - 1,
-      quests.size() - 1,
-      c->WorldId
+      quests.size() - 1
       //combats.size()
    );
 }

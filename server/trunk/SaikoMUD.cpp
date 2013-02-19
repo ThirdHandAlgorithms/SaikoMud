@@ -38,7 +38,8 @@ int main(int argc, char* argv[]) {
                         intf.Login(GFDisposableStr("servertest"), GFDisposableStr("muddy"));
                         
                         Global_World()->printf_world_stats(true);
-
+                        
+                        /*
                         TGFString s;
                         intf.interact_getQuestText(1, &s);
                         printf("%s\n", s.getValue());
@@ -53,7 +54,8 @@ int main(int argc, char* argv[]) {
                               printf("%d: %s\n", q->id, q->title.getValue());
                            }
                         }
-                        
+                        */
+
                         while ( server->isRunning() ) {
                            server->cleanup();
 

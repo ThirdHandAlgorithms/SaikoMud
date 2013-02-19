@@ -47,6 +47,8 @@ protected:
    bool hasNPCsAt(long x, long y);
 
    void loadNeededQuests(CCharacter *cNpc);
+
+   long completeQuest(CQuest *q, CCharacter *cFor);
 public:
    CWorld();
    ~CWorld();
@@ -67,7 +69,8 @@ public:
    CCharacter *getCharacter(DWORD32 id);
    CQuest *getQuest(DWORD32 id);
 
-   bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory);
+   bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp);
+   bool getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting);
 
    void echoAsciiMap( TGFString *s, long x, long y, unsigned int radius );
 

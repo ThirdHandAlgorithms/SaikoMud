@@ -8,8 +8,6 @@
 }
 
 namespace grideditor.saikomudDataSetTableAdapters {
-    
-    
     public partial class gridTableAdapter {
     }
 }

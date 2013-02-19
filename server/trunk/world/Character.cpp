@@ -12,6 +12,8 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool 
 
    this->quests.autoClear = false;
 
+   this->greeting.set("");
+
    this->load();
 }
 
@@ -40,6 +42,8 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery 
    this->x.set( rec.getValue(flds.getFieldIndex_ansi("x"))->asInteger() );
    this->y.set( rec.getValue(flds.getFieldIndex_ansi("y"))->asInteger() );
    this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
+
+   this->greeting.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("greeting"))->asString() );
 }
 
 CCharacter::~CCharacter() {
@@ -72,6 +76,8 @@ void CCharacter::load() {
          this->x.set( rec.getValue(flds.getFieldIndex_ansi("x"))->asInteger() );
          this->y.set( rec.getValue(flds.getFieldIndex_ansi("y"))->asInteger() );
          this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
+
+         this->greeting.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("greeting"))->asString() );
 
          // wordt intern bijgehouden
          //this->WorldId = rec.getValue(flds.getFieldIndex_ansi("current_worldid"))->asInteger();
