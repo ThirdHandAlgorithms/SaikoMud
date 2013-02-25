@@ -48,6 +48,8 @@ protected:
    int rollAutoattackDamage();
 
    void interact_autoattack();
+
+   virtual void calculateStats();
 public:
    TGFStringProperty name;
    TGFProperty<unsigned int> level;
@@ -72,6 +74,8 @@ public:
 
    void enterCombat( CCombat *c );
    void leaveCombat();
+
+   CBaseCombatStats *getCurrentStats();
 };
 
 

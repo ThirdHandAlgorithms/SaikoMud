@@ -18,14 +18,16 @@ protected:
 
    void load();
 
+   void calculateStats();
+
 public:
    DWORD32 WorldId;
  
    TGFProperty<unsigned long> id;
-   TGFProperty<unsigned long> xp;
-   TGFProperty<unsigned long> money;
-   TGFProperty<long> x;
-   TGFProperty<long> y;
+   TGFLockableProperty<unsigned long> xp;
+   TGFLockableProperty<unsigned long> money;
+   TGFLockableProperty<long> x;
+   TGFLockableProperty<long> y;
 
    TGFProperty<bool> isNPC;
 

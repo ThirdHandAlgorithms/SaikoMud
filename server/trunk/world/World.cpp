@@ -419,6 +419,13 @@ long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
    return xp;
 }
 
+void CWorld::informAboutAllStats(CCharacter *cFor, CCharacter *cAbout) {
+   CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
+   if (tc != NULL) {
+      tc->informAboutAllStats(cAbout);
+   }
+}
+
 bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp) {
    CQuest *q = this->getQuest(iQuestId);
    if (q != NULL) {

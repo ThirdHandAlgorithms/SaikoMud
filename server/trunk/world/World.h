@@ -77,6 +77,8 @@ public:
    DWORD32 generateUniqueWorldId(CCharacter *c);
    void unloadCharacter(CCharacter *c);
 
+   void informAboutAllStats(CCharacter *cFor, CCharacter *cAbout);
+
    void printf_world_stats(bool preloadThings);
 };
 

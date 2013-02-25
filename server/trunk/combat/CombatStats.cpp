@@ -16,6 +16,11 @@ CCombatStats::CCombatStats(TMySQLSquirrelConnection *pConn, unsigned long id) : 
    this->load();
 }
 
+CCombatStats::CCombatStats() : CBaseCombatStats() {
+   this->conn = NULL;
+   this->id = 0;
+}
+
 CCombatStats::~CCombatStats() {
 }
 

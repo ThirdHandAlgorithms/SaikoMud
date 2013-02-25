@@ -173,7 +173,8 @@ void CTelnetConnection::inform_currentroom() {
 
 void CTelnetConnection::inform_lastaction() {
    TGFString tmp;
-   this->gameintf.GetLastActionInfo(&tmp);
+
+   DWORD32 iWorldId = this->gameintf.GetLastActionInfo(&tmp);
 
    if (!bBinaryMode) {
       if (tmp.getLength() > 0) {
@@ -181,7 +182,7 @@ void CTelnetConnection::inform_lastaction() {
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_lastactioninfo, 0, 0, &tmp);
+      this->sendBin(c_response_lastactioninfo, iWorldId, 0, &tmp);
    }
 }
 
@@ -275,6 +276,36 @@ void CTelnetConnection::inform_earnxp(long xp, long totalxp) {
    }
 }
 
+void CTelnetConnection::informAboutAllStats(CCharacter *cAbout) {
+   TGFString tmp("");
+
+   CBaseCombatStats *stats = cAbout->getCurrentStats();
+
+   if (!bBinaryMode) {
+      tmp.setLength(1024);
+
+      sprintf(tmp.getPointer(0), "Stats for %s: level %d, %d XP, %d HP\r\n\0\0\0\0",
+         cAbout->name.get(),
+         cAbout->level.get(),
+         cAbout->xp.get(),
+         cAbout->currenthealthpool.get()
+      );
+
+      tmp.setLength(strlen(tmp.getValue()));
+
+      this->send(&tmp);
+   } else {
+      this->sendBin(c_event_statinfo_level, cAbout->WorldId, cAbout->level.get(), NULL);
+      this->sendBin(c_event_statinfo_totalxp, cAbout->WorldId, cAbout->xp.get(), NULL);
+      this->sendBin(c_event_statinfo_hp, cAbout->WorldId, cAbout->currenthealthpool.get(), NULL);
+      
+      if (stats != NULL) {
+         this->sendBin(c_event_statinfo_strength, cAbout->WorldId, stats->strength.get(), NULL);
+         this->sendBin(c_event_statinfo_energy, cAbout->WorldId, stats->energy.get(), NULL);
+         this->sendBin(c_event_statinfo_protection, cAbout->WorldId, stats->protection.get(), NULL);
+      }
+   }
+}
 
 // todo: this function is way too long for a command-parser, need to buffer messages in queue and process 1 by 1
 void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
@@ -425,6 +456,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                if (bActionOk) {
                   this->inform_questtext(intparam1, &s, rewards_xp);
                }
+            } else if (command == c_self_getallstats) {
+               bActionOk = this->gameintf.inform_SelfAboutAllStats();
             }
 
             this->inform_lastaction();

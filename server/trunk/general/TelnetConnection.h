@@ -24,12 +24,22 @@
 #define c_radar_getnearbynpcs 0x00000101
 #define c_radar_getnearbyplayers 0x00000102
 
-#define c_response_lastactioninfo 0x10010000
+#define c_self_getallstats 0x00000201
+
+#define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
 
 #define c_event_earnsxp 0x20040001
-//#define c_event_... 0x20040002
+
+#define c_event_statinfo_level 0x20040101
+#define c_event_statinfo_totalxp 0x20040102
+#define c_event_statinfo_totalhp 0x20040103
+#define c_event_statinfo_hp 0x20040104
+#define c_event_statinfo_strength 0x20040105
+#define c_event_statinfo_energy 0x20040106
+#define c_event_statinfo_protection 0x20040107
+
 
 #define c_response_npcinfo 0x30110000
 #define c_response_dialog 0x30120000
@@ -65,7 +75,7 @@ protected:
    void inform_questtext(DWORD32 iQuestId, TGFString *s, long rewards_xp);
    void inform_npcinfo(DWORD32 iWorldId, TGFString *s);
    void inform_npcdialog(DWORD32 iWorldId, TGFString *s);
-   
+
    //void inform_currentplayerstats();
 
    bool decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s);
@@ -85,6 +95,7 @@ public:
    void append_nickname(TGFString *s);
 
    void inform_earnxp(long xp, long totalxp);
+   void informAboutAllStats(CCharacter *cAbout);
 };
 
 #endif // __TELNETCONNECTION_H__
