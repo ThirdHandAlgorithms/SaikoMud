@@ -19,7 +19,6 @@ class TGFBasicProperty: public TGFFreeable
 {
    protected:
       T anObject;
-      TGFLockable aLock;
    public:
       /// initializes internal object to 0
       TGFBasicProperty() : TGFFreeable() {
@@ -45,13 +44,8 @@ class TGFBasicProperty: public TGFFreeable
       T internalGet() const {
          return this->anObject;
       }
-
-      void lockedAdd(T anotherObject) {
-         aLock.lockWhenAvailable();
-         this->anObject += anotherObject;
-         aLock.unlock();
-      }
 };
+
 
 /// TGFProperty is the default property class to use,
 ///  use it in the public section of your classes
@@ -84,6 +78,23 @@ class TGFProperty: public TGFBasicProperty<T>
       void set( T object );
       /// implemenation GET function: calls Retreive function if set, otherwise it invokes internalGet() directly
       T get() const;
+
+      void add(T object);
+};
+
+template <class T>
+class TGFLockableProperty: public TGFProperty<T>
+{
+   protected:
+      TGFLockable aLock;
+
+   public:
+      TGFLockableProperty();
+      ~TGFLockableProperty();
+
+      void set( T object );
+      
+      void lockedAdd(T anotherObject);
 };
 
 /// special class for string-properties, don't use this base class
@@ -233,6 +244,44 @@ template <class T>T TGFProperty<T>::get() const {
    } else {
       return this->internalGet();
    }
+}
+
+template <class T>void TGFProperty<T>::add(T object) {
+   this->set(this->get() + object);
+}
+
+//----------------------------------------------------------------------------
+
+template <class T>TGFLockableProperty<T>::TGFLockableProperty() : TGFProperty<T>() {
+}
+
+template <class T>TGFLockableProperty<T>::~TGFLockableProperty() {
+}
+
+template <class T>void TGFLockableProperty<T>::set( T object ) {
+   aLock.lockWhenAvailable();
+   try {
+      if ( this->aNotify != 0 ) {
+         this->aNotify->execute( object );
+      } else {
+         this->internalSet( object );
+      }
+   } catch(...) {
+      aLock.unlock();
+      throw;
+   }
+   aLock.unlock();
+}
+
+template <class T>void TGFLockableProperty<T>::lockedAdd(T anotherObject) {
+   aLock.lockWhenAvailable();
+   try {
+      this->anObject += anotherObject;
+   } catch(...) {
+      aLock.unlock();
+      throw;
+   }
+   aLock.unlock();
 }
 
 //----------------------------------------------------------------------------

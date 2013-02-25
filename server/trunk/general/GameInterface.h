@@ -37,7 +37,7 @@ public:
    void ReloadWorld();
    void GetTinyMap(TGFString *s);
 
-   void GetLastActionInfo(TGFString *s);
+   DWORD32 GetLastActionInfo(TGFString *s);
    BYTE GetRoomInfo(TGFString *s);
 
    // character actions
@@ -56,6 +56,8 @@ public:
    bool interact_greet(DWORD32 iCharId, TGFString *sGreeting);
    int interact_getQuests(DWORD32 iCharId, TGFVector *v);
    bool interact_getQuestText(DWORD32 iQuestId, TGFString *s, long *rewards_xp);
+
+   bool inform_SelfAboutAllStats();
 
    // special GM actions
    bool run_teleport( long x, long y );

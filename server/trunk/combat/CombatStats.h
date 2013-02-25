@@ -27,6 +27,7 @@ protected:
 
 public:
    CCombatStats( TMySQLSquirrelConnection *pConn, unsigned long id );
+   CCombatStats();
    ~CCombatStats();
 
    void save();

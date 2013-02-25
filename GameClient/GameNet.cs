@@ -32,6 +32,7 @@ namespace GameClient {
         public event GameNetCallback npcinfo;
         public event GameNetCallback dialog;
         public event GameNetCallback earnsxp;
+        public event GameNetCallback statsinfo;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -51,12 +52,22 @@ namespace GameClient {
         public const UInt32 c_radar_getnearbynpcs = 0x00000101;
         public const UInt32 c_radar_getnearbyplayers = 0x00000102;
 
+        public const UInt32 c_self_getallstats = 0x00000201;
+
         // responses
-        public const UInt32 c_response_lastactioninfo = 0x10010000;
+        public const UInt32 c_response_lastactioninfo = 0x30010000;
         public const UInt32 c_response_roominfo = 0x30020000;
         public const UInt32 c_response_asciimap = 0x10030000;
 
         public const UInt32 c_event_earnsxp = 0x20040001;
+
+        public const UInt32 c_event_statinfo_level = 0x20040101;
+        public const UInt32 c_event_statinfo_totalxp = 0x20040102;
+        public const UInt32 c_event_statinfo_totalhp = 0x20040103;
+        public const UInt32 c_event_statinfo_hp = 0x20040104;
+        public const UInt32 c_event_statinfo_strength = 0x20040105;
+        public const UInt32 c_event_statinfo_energy = 0x20040106;
+        public const UInt32 c_event_statinfo_protection = 0x20040107;
 
         public const UInt32 c_response_chatmessage = 0x30100000;
 
@@ -65,7 +76,7 @@ namespace GameClient {
 
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
-        
+
 
         public GameNet() {
             EventHandler = new Thread(new ThreadStart(ThreadProc));
@@ -149,7 +160,20 @@ namespace GameClient {
                     dialog.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_event_earnsxp) {
                     earnsxp.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_level) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_totalxp) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_hp) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_strength) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_energy) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_statinfo_protection) {
+                    statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 }
+                
             } catch {
                 // ignore
             }

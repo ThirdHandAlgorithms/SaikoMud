@@ -176,6 +176,15 @@ int CCombatant::affectWithHealing( int combatevent, int amount ) {
    return 0;
 }
 
+void CCombatant::calculateStats() {
+}
+
+CBaseCombatStats *CCombatant::getCurrentStats() {
+   this->calculateStats();
+
+   return &(this->currentstats);
+}
+
 // ------------------------------------------------------------------------------
 #include "../general/ChatChannel.h"
 

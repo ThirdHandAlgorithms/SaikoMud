@@ -24,6 +24,18 @@ namespace GameClient {
         public String CurrentDialog;
     };
 
+    class CCharSelf {
+        public String Nickname = "";
+        public UInt32 WorldID = 0;
+        public UInt32 level = 0;
+        public UInt32 totalxp = 0;
+        public UInt32 totalhp = 0;
+        public UInt32 hp = 0;
+        public UInt32 strength = 0;
+        public UInt32 energy = 0;
+        public UInt32 protection = 0;
+    };
+
     class Program {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
@@ -58,6 +70,8 @@ namespace GameClient {
         private String StrMapInfo = "";
         private String StrRoomInfo = "";
         private byte RoomEnvType = 0;
+
+        private CCharSelf CharSelf = new CCharSelf();
 
         private List<CQuest> QuestsAvailable = new List<CQuest>();
         private List<CNPC> NPCsAvailable = new List<CNPC>();
@@ -162,6 +176,7 @@ namespace GameClient {
             net.dialog += OnDialog;
 
             net.earnsxp += OnEarnXP;
+            net.statsinfo += OnStatsInfo;
 
             net.Connect();
 
@@ -178,6 +193,13 @@ namespace GameClient {
 
         public void OnActionInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
             StrActionInfo = str;
+
+            if (CharSelf.WorldID == 0) {
+                CharSelf.WorldID = intparam1;
+
+                net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
+            }
+
             LastActionTime = DateTime.Now;
 
             frmDebug.addMessage(str + crlf[0]);
@@ -249,6 +271,32 @@ namespace GameClient {
 
             LastEventStr = "You have earned " + intparam1 + " XP";
             LastEventTime = DateTime.Now;
+        }
+
+        public void OnStatsInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+            // command -> xp, lvl, str, enrgy, prot
+
+            // intparam1 = worldid
+            // intparam2 = statvalue
+
+            if ((intparam1 == 0) || (intparam1 == CharSelf.WorldID)) {
+                if (command == GameNet.c_event_statinfo_level) {
+                    CharSelf.level = intparam2;
+                } else if (command == GameNet.c_event_statinfo_totalxp) {
+                    CharSelf.totalxp = intparam2;
+                } else if (command == GameNet.c_event_statinfo_totalhp) {
+                    CharSelf.totalhp = intparam2;
+                } else if (command == GameNet.c_event_statinfo_hp) {
+                    CharSelf.hp = intparam2;
+                } else if (command == GameNet.c_event_statinfo_strength) {
+                    CharSelf.strength = intparam2;
+                } else if (command == GameNet.c_event_statinfo_energy) {
+                    CharSelf.energy = intparam2;
+                } else if (command == GameNet.c_event_statinfo_protection) {
+                    CharSelf.protection = intparam2;
+                }
+            }
+
         }
 
         public int FindPreviousSpace(String s, int iLastPos) {
@@ -459,10 +507,10 @@ namespace GameClient {
             Surface m_Energy     = font_actioninfo.Render("Energy", Color.Black);
             Surface m_Protection = font_actioninfo.Render("Protection", Color.Black);
 
-            Surface m_HealthVal     = font_actioninfo.Render("100", Color.Black);
-            Surface m_StrengthVal   = font_actioninfo.Render("0", Color.Black);
-            Surface m_EnergyVal     = font_actioninfo.Render("0", Color.Black);
-            Surface m_ProtectionVal = font_actioninfo.Render("0", Color.Black);
+            Surface m_HealthVal     = font_actioninfo.Render("" + CharSelf.hp, Color.Black);
+            Surface m_StrengthVal = font_actioninfo.Render("" + CharSelf.strength, Color.Black);
+            Surface m_EnergyVal = font_actioninfo.Render("" + CharSelf.energy, Color.Black);
+            Surface m_ProtectionVal = font_actioninfo.Render("" + CharSelf.protection, Color.Black);
 
 
             StatsTextArea.X = SlotsAndStatsArea.X + 250;

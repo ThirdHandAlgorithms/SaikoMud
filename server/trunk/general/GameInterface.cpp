@@ -130,8 +130,14 @@ BYTE CGameInterface::GetRoomInfo(TGFString *s) {
    return envtype;
 }
 
-void CGameInterface::GetLastActionInfo(TGFString *s) {
+DWORD32 CGameInterface::GetLastActionInfo(TGFString *s) {
    s->setValue(&sLastactionInfo);
+
+   if (this->loggedInCharacter != NULL) {
+      return this->loggedInCharacter->WorldId;
+   }
+
+   return 0;
 }
 
 // character actions
@@ -314,3 +320,13 @@ int CGameInterface::radar_getNearbyPlayers(TGFVector *v) {
    return 0;
 }
 
+
+bool CGameInterface::inform_SelfAboutAllStats() {
+   this->DoChecks();
+
+   if (this->loggedInCharacter != NULL) {
+      Global_World()->informAboutAllStats(this->loggedInCharacter, this->loggedInCharacter);
+   }
+
+   return true;
+}

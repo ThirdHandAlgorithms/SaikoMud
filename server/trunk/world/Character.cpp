@@ -49,6 +49,46 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery 
 CCharacter::~CCharacter() {
 }
 
+void CCharacter::calculateStats() {
+   // reset stats
+   this->currentstats.strength.set(0);
+   this->currentstats.energy.set(0);
+   this->currentstats.protection.set(0);
+
+   // load gear
+   long iCharId = this->id.internalGet();
+
+   TGFString sql(
+   "SELECT stats.strength, stats.energy, stats.protection \
+   FROM `charslots` \
+   left outer join item on (item.id=charslots.item_id) \
+   left outer join stats on (item.stats_id=stats.id) \
+   where charslots.char_id=:id");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("id")->setInteger(iCharId);
+   
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      TGFBFields flds;
+      qry.fetchFields(&flds);
+      while ( qry.next() ) {
+         TGFBRecord rec;
+         qry.fetchRecord(&rec);
+
+         this->currentstats.strength.add(rec.getValue(0)->asInteger());
+         this->currentstats.energy.add(rec.getValue(1)->asInteger());
+         this->currentstats.protection.add(rec.getValue(2)->asInteger());
+      }
+
+      qry.close();
+   } else {
+      printf("CCharacter::calculateStats(): %s\n", err.errorstring.getValue());
+   }
+
+   // apply stat modifiers
+}
+
 void CCharacter::_addQuest(CQuest *q) {
    if ( this->quests.findElement(q) == -1 ) {
       this->quests.addElement(q);
@@ -56,10 +96,12 @@ void CCharacter::_addQuest(CQuest *q) {
 }
 
 void CCharacter::load() {
+   long iCharId = this->id.internalGet();
+
    TGFString sql("select * from `char` where id=:id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("id")->setInteger(this->id.internalGet());
+   qry.findOrAddParam("id")->setInteger(iCharId);
    
    TSquirrelReturnData err;
    if ( qry.open(&err) ) {
