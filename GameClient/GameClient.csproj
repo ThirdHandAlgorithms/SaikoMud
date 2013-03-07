@@ -118,6 +118,7 @@
   <ItemGroup />
   <ItemGroup>
     <Content Include="Data\infobox.png" />
+    <Content Include="Data\intro_test.mp3" />
     <Content Include="Data\npcs.png" />
     <Content Include="Data\puppet.png" />
     <Content Include="Data\statsandslots.png" />

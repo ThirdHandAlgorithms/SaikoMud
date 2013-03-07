@@ -83,13 +83,13 @@ void CCombatant::combatcycle() {
 bool CCombatant::rollHit( CCombatant *target ) {
    int roll = combat->getDiceRoll();
    int lvldiff = this->level.get() - target->level.get();
-   return ( roll >= (50 + lvldiff) );
+   return ( roll >= (30 + (lvldiff * 1.5)) );
 }
 
 bool CCombatant::rollCrit( CCombatant *target ) {
    int roll = combat->getDiceRoll();
    int lvldiff = this->level.get() - target->level.get();
-   return ( roll >= (30 + lvldiff) );
+   return ( roll >= (40 + lvldiff) );
 }
 
 int CCombatant::rollAutoattackDamage() {
@@ -261,7 +261,7 @@ void CCombat::leaveCombat( CCombatant *c ) {
 int CCombat::getDiceRoll() {
    long r = rand() + rand() - rand() + rand() - rand() + rand();
 
-   return (r % 100);
+   return (r % 101);
 }
 
 void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CCombatant *target, int amount ) {
@@ -313,12 +313,38 @@ void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CComba
       reinterpret_cast<CChatChannel *>(combatlog)->messageToAll( NULL, &combatmsg );
    }
 
+   CTelnetConnection *tcsource, *tctarget;
+
+   tcsource = Global_Server()->getClientFromPool(target);
+   if (tcsource != NULL) {
+      tcsource->inform_combatevent(source->WorldId, target->WorldId, eventtype, amount, &combatmsg);
+   }
+   tctarget = Global_Server()->getClientFromPool(source);
+   if (tctarget != NULL) {
+      tctarget->inform_combatevent(source->WorldId, target->WorldId, eventtype, amount, &combatmsg);
+   }
+
    if ( !target->isAlive() ) {
       if ( combatlog != NULL ) {
          combatmsg.setValue_ansi("COMBATEVENT - %b has died");
          combatmsg.replace_ansi("%b", target->name.get() );
 
          reinterpret_cast<CChatChannel *>(combatlog)->messageToAll( NULL, &combatmsg );
+      }
+
+      if (tcsource != NULL) {
+         tcsource->inform_combatevent(source->WorldId, target->WorldId, COMBATEVENT_DEATH, 0, &combatmsg);
+      }
+      if (tctarget != NULL) {
+         tctarget->inform_combatevent(source->WorldId, target->WorldId, COMBATEVENT_DEATH, 0, &combatmsg);
+      }
+
+      if (target->WorldId != 0) {
+         this->leaveCombat(target);
+         //this->leaveCombat(source);
+         this->stop();
+         
+         Global_World()->handleDeath( reinterpret_cast<CCharacter *>(target), reinterpret_cast<CCharacter *>(source) );
       }
    }
 }

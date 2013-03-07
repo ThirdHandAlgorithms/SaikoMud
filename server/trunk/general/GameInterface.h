@@ -46,7 +46,7 @@ public:
    bool run_walkleft();
    bool run_walkright();
 
-   bool attack_start(DWORD32 iCharId);
+   bool attack_start(DWORD32 iWorldId);
    //bool attack_stop();
    // ...
 

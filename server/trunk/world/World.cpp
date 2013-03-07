@@ -8,6 +8,7 @@
 
 #include <Groundfloor/Materials/GFFunctions.h>
 
+#include <vector>
 
 CWorld::CWorld() : TGFFreeable() {
    worldids.autoClear = false;
@@ -51,7 +52,7 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
    TMySQLSquirrel qry( pConn );
    TGFBRecord rec;
 
-   TGFString sql("select min(x), min(y), max(x), max(y), count(x) from grid where active=1");
+   TGFString sql("select min(x), min(y), max(x), max(y), count(x) from grid");
    qry.setQuery(&sql);
    if ( qry.open() ) {
       qry.next();
@@ -79,7 +80,7 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
    combats.resizeVector( w * h );
    combats.setElementCount( w * h );
 
-   sql.setValue_ansi("select * from grid where active=1 order by y asc, x asc");
+   sql.setValue_ansi("select * from grid order by y asc, x asc");
    qry.setQuery(&sql);
    TSquirrelReturnData errData;
    if ( qry.open(&errData) ) {
@@ -90,6 +91,7 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
       int yind = flds.getFieldIndex_ansi("y");
       int descind = flds.getFieldIndex_ansi("desc");
       int envtypeind = flds.getFieldIndex_ansi("envtype");
+      int activeind = flds.getFieldIndex_ansi("active");
 
       while ( qry.next() ) {
          qry.fetchRecord(&rec);
@@ -97,16 +99,17 @@ void CWorld::reloadFromDatabase( TMySQLSquirrelConnection *pConn ) {
          CRoom *room = new CRoom();
 
          // this was previously a function within CRoom, inlining for speed
-         room->x.internalSet( rec.getValue(xind)->asInteger() );
-         room->y.internalSet( rec.getValue(yind)->asInteger() );
+         room->traversable = rec.getValue(activeind)->asBoolean();
+         room->x = rec.getValue(xind)->asInteger();
+         room->y = rec.getValue(yind)->asInteger();
 
-         room->envtype.internalSet( static_cast<BYTE>(rec.getValue(envtypeind)->asInteger()) );
+         room->envtype = static_cast<BYTE>(rec.getValue(envtypeind)->asInteger());
 
-         room->description.internalSetCopy( rec.getValue(descind)->asString() );
+         room->description.setValue( rec.getValue(descind)->asString() );
          // end
 
-         long x = room->x.get();
-         long y = room->y.get();
+         long x = room->x;
+         long y = room->y;
 
          rooms.insertAt( (y + y_fix) * w + x + x_fix, room );
       }
@@ -129,7 +132,7 @@ void CWorld::reloadNpcs() {
    TMySQLSquirrel qry( this->conn );
    TGFBRecord rec;
 
-   CCharacter *c;
+   CNPCharacter *c;
 
    TSquirrelReturnData errData;
 
@@ -145,7 +148,7 @@ void CWorld::reloadNpcs() {
       while ( qry.next() ) {
          qry.fetchRecord(&rec);
 
-         c = new CCharacter(this->conn, &qry);
+         c = new CNPCharacter(this->conn, &qry);
          generateUniqueWorldId(c);
          this->loadNeededQuests(c);
          this->npcs.addElement(c);
@@ -157,7 +160,7 @@ void CWorld::reloadNpcs() {
    }
 
    for (unsigned int j = 0; j < this->npcs.size(); j++) {
-      c = static_cast<CCharacter *>(this->npcs.elementAt(j));
+      c = static_cast<CNPCharacter *>(this->npcs.elementAt(j));
       Global_CharacterUpdate()->schedule(c);
    }
 }
@@ -194,11 +197,11 @@ int CWorld::getNpcsInRoom_fromdb(long x, long y, TGFVector *v) {
    return cTotal;
 }
 
-CCharacter *CWorld::getNpcByName(TGFString *s) {
-   CCharacter *obj;
+CNPCharacter *CWorld::getNpcByName(TGFString *s) {
+   CNPCharacter *obj;
    unsigned long c = this->npcs.size();
    for (unsigned long i = 0; i < c; i++) {
-      obj = static_cast<CCharacter *>( this->npcs.elementAt(i) );
+      obj = static_cast<CNPCharacter *>( this->npcs.elementAt(i) );
       if (obj != NULL) {
          if (s->match(obj->name.link())) {
             return obj;
@@ -215,7 +218,7 @@ bool CWorld::hasNPCsAt(long x, long y) {
    for (unsigned long i = 0; i < c; i++) {
       obj = static_cast<CCharacter *>( this->npcs.elementAt(i) );
       if (obj != NULL) {
-         if ((obj->x.get() == x) && (obj->y.get() == y)) {
+         if ((obj->x.get() == x) && (obj->y.get() == y) && (obj->currenthealthpool.get() > 0)) {
             return true;
          }
       }
@@ -259,7 +262,7 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
             CRoom *room = this->getRoom(j,i);
             if ( room != NULL ) {
                if (this->hasNPCsAt(j,i)) {
-                  line.append(static_cast<char>(97 + room->envtype.get()));
+                  line.append(static_cast<char>(97 + room->envtype));
                } else {
                   line.append_ansi("@");
                }
@@ -270,9 +273,9 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
             CRoom *room = this->getRoom(j,i);
             if ( room != NULL ) {
                if (this->hasNPCsAt(j,i)) {
-                  line.append(static_cast<char>((65 + room->envtype.get())));
+                  line.append(static_cast<char>((65 + room->envtype)));
                } else {
-                  line.append(static_cast<char>((48 + room->envtype.get())));
+                  line.append(static_cast<char>((48 + room->envtype)));
                }
             } else {
                line.append_ansi(" ");
@@ -313,7 +316,7 @@ DWORD32 CWorld::generateUniqueWorldId(CCharacter *c) {
 
       c->WorldId = r;
 
-      if (!c->isNPC.get()) {
+      if (!c->isNPC) {
          this->characters.addElement(c);
       }
    } catch (...) {
@@ -345,11 +348,11 @@ CQuest *CWorld::getQuest(DWORD32 id) {
    return static_cast<CQuest *>( this->quests.elementAt(id) );
 }
 
-void CWorld::loadNeededQuests(CCharacter *cNpc) {
+void CWorld::loadNeededQuests(CNPCharacter *cNpc) {
    TGFString sql("select `quest`.* from `npc_quest` left outer join `quest` on (`quest`.`id`=`npc_quest`.`quest_id`) where char_id=:char_id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("char_id")->setInteger(cNpc->id.get());
+   qry.findOrAddParam("char_id")->setInteger(cNpc->id);
    
    TSquirrelReturnData err;
    if ( qry.open(&err) ) {
@@ -396,7 +399,7 @@ long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
    TGFString sql("insert into `questhistory` ( char_id, quest_id, dt_completed) values (:char_id,:quest_id,:dt_completed)");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("char_id")->setInteger(cFor->id.get());
+   qry.findOrAddParam("char_id")->setInteger(cFor->id);
    qry.findOrAddParam("quest_id")->setInteger(q->id);
    qry.findOrAddParam("dt_completed")->setInt64(GFGetTimestamp());
    if (qry.open()) {
@@ -417,6 +420,79 @@ long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
    }
 
    return xp;
+}
+
+void CWorld::onRespawnTimerCharacter(TGFFreeable *c) {
+
+   // timer tick 0 is instantly, despite interval tt
+   GFMillisleep(5000);
+
+   CCharacter *cFor = reinterpret_cast<CCharacter *>(c);
+
+   if (!cFor->isNPC) {
+      long x = 0, y = 0;
+	   cFor->x.set(x);
+	   cFor->y.set(y);
+      cFor->currenthealthpool.set(100);
+
+	   Global_CharacterUpdate()->schedule(cFor);
+
+      CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
+      if (tc != NULL) {
+         tc->inform_map();
+         tc->informAboutAllStats(cFor);
+      }
+   } else {
+      // is npc
+
+      CNPCharacter *npc = reinterpret_cast<CNPCharacter *>(cFor);
+
+      // TODO: schedule event to respawn NPC...
+      npc->timeofdeath = GFGetTimestamp();
+   }
+}
+
+void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
+   // lose all xp (of current level...)
+   long xp = -1 * cFor->xp.get();
+   cFor->xp.lockedAdd(xp);
+   Global_CharacterUpdate()->schedule(cFor);
+
+   CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
+   if (tc != NULL) {
+      tc->inform_earnxp(xp, cFor->xp.get());
+   }
+
+   if (cFor->isNPC && !cKilledBy->isNPC) {
+      CNPCharacter *npc = static_cast<CNPCharacter *>(cFor);
+
+      unsigned long drop_item_id = npc->getRandomItemDrop();
+      if (drop_item_id != 0) {
+         cKilledBy->addToBags(drop_item_id);
+      }
+
+      std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
+      for (int i = 0; i < questdrops.size(); i++) {
+         cKilledBy->addToBags(questdrops[i]);
+      }
+   }
+
+
+   // schedule teleportation to nearest spawnpoint
+
+   this->onRespawnTimerCharacter(cFor);
+
+
+   // TODO: stupid timer doesn't work...
+   /*
+   TGFTimer *t = new TGFTimer();
+   t->setInterval(5000);
+   t->onTimerEvent.setDefaultParam(cFor);
+   t->onTimerEvent.addNotify( GFCreateNotify(TGFFreeable *,CWorld,this,&CWorld::onRespawnTimerCharacter) );
+   t->start();
+   
+   GFDisposable(t);
+   */
 }
 
 void CWorld::informAboutAllStats(CCharacter *cFor, CCharacter *cAbout) {

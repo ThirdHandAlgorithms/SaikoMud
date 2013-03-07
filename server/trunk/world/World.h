@@ -46,7 +46,7 @@ protected:
 
    bool hasNPCsAt(long x, long y);
 
-   void loadNeededQuests(CCharacter *cNpc);
+   void loadNeededQuests(CNPCharacter *cNpc);
 
    long completeQuest(CQuest *q, CCharacter *cFor);
 public:
@@ -64,13 +64,16 @@ public:
 
    int getNpcsInRoom_fromdb(long x, long y, TGFVector *v);
 
-   CCharacter *getNpcByName(TGFString *s);
+   CNPCharacter *getNpcByName(TGFString *s);
 
    CCharacter *getCharacter(DWORD32 id);
    CQuest *getQuest(DWORD32 id);
 
    bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp);
    bool getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting);
+
+   void onRespawnTimerCharacter(TGFFreeable *c);
+   void handleDeath(CCharacter *cFor, CCharacter *cKilledBy);
 
    void echoAsciiMap( TGFString *s, long x, long y, unsigned int radius );
 

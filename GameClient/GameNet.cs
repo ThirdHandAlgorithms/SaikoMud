@@ -22,6 +22,7 @@ namespace GameClient {
 
         // callbacks
         public delegate void GameNetCallback(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str);
+        public delegate void GameNetExtCallback(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str, UInt32 intparam3, UInt32 intparam4);
 
         public event GameNetCallback actioninfo;
         public event GameNetCallback roominfo;
@@ -33,6 +34,7 @@ namespace GameClient {
         public event GameNetCallback dialog;
         public event GameNetCallback earnsxp;
         public event GameNetCallback statsinfo;
+        public event GameNetExtCallback combatmsg;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -40,7 +42,7 @@ namespace GameClient {
         public const UInt32 c_run_walkleft = 0x00000007;
         public const UInt32 c_run_walkright = 0x00000008;
 
-        public const UInt32 c_attack_start = 0x10000009;
+        public const UInt32 c_attack_start = 0x20000009;
         public const UInt32 c_attack_stop = 0x0000000a;
 
         public const UInt32 c_chat_say = 0x30000010;
@@ -60,6 +62,7 @@ namespace GameClient {
         public const UInt32 c_response_asciimap = 0x10030000;
 
         public const UInt32 c_event_earnsxp = 0x20040001;
+        public const UInt32 c_event_combatmsg = 0x70040002;
 
         public const UInt32 c_event_statinfo_level = 0x20040101;
         public const UInt32 c_event_statinfo_totalxp = 0x20040102;
@@ -76,6 +79,15 @@ namespace GameClient {
 
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
+
+        public const UInt32 COMBATEVENT_MISS = 1;
+        public const UInt32 COMBATEVENT_HIT = 2;
+        public const UInt32 COMBATEVENT_CRIT = 3;
+        public const UInt32 COMBATEVENT_HEAL = 5;
+        public const UInt32 COMBATEVENT_HEALCRIT = 6;
+        public const UInt32 COMBATEVENT_DEATH = 9;
+
+        public const UInt32 COMBATSOURCE_AUTOATTACK = 0;
 
 
         public GameNet() {
@@ -96,10 +108,17 @@ namespace GameClient {
 
             UInt32 intparam1 = 0;
             UInt32 intparam2 = 0;
+            UInt32 intparam3 = 0;
+            UInt32 intparam4 = 0;
             String sDataStr = "";
 
             bool bIsStrCommand = ((command & 0x10000000) > 0);
             bool bIntParamCommand = ((command & 0x20000000) > 0);
+            bool bExtIntParamCommand = ((command & 0x40000000) > 0);
+
+
+            // TODO: check length of data buffer, could be shorter than command parameters promiss
+
 
             if (bIntParamCommand) {
                 intparam1 |= (UInt32)(sData[i] << 24);
@@ -113,6 +132,22 @@ namespace GameClient {
                 intparam2 |= (UInt32)(sData[i + 1] << 16);
                 intparam2 |= (UInt32)(sData[i + 2] << 8);
                 intparam2 |= (UInt32)(sData[i + 3]);
+
+                i += 4;
+            }
+
+            if (bExtIntParamCommand) {
+                intparam3 |= (UInt32)(sData[i] << 24);
+                intparam3 |= (UInt32)(sData[i + 1] << 16);
+                intparam3 |= (UInt32)(sData[i + 2] << 8);
+                intparam3 |= (UInt32)(sData[i + 3]);
+
+                i += 4;
+
+                intparam4 |= (UInt32)(sData[i] << 24);
+                intparam4 |= (UInt32)(sData[i + 1] << 16);
+                intparam4 |= (UInt32)(sData[i + 2] << 8);
+                intparam4 |= (UInt32)(sData[i + 3]);
 
                 i += 4;
             }
@@ -160,6 +195,8 @@ namespace GameClient {
                     dialog.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_event_earnsxp) {
                     earnsxp.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_event_combatmsg) {
+                    combatmsg.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_event_statinfo_level) {
                     statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_event_statinfo_totalxp) {
@@ -177,10 +214,6 @@ namespace GameClient {
             } catch {
                 // ignore
             }
-
-            
-        //public const UInt32 c_response_npcnames = 0x30110000;
-        //public const UInt32 c_response_dialog = 0x20120000;
 
         }
 
@@ -259,12 +292,17 @@ namespace GameClient {
             stream.Write(data, 0, data.Length);
         }
 
-        public void SendBinToServer(UInt32 command, UInt32 intparam1, UInt32 intparam2, String message) {
+        public void SendBinToServer(UInt32 command, UInt32 intparam1, UInt32 intparam2, String message, UInt32 intparam3 = 0, UInt32 intparam4 = 0) {
             bool bIsStrCommand = ((command & 0x10000000) > 0);
             bool bIntParamCommand = ((command & 0x20000000) > 0);
+            bool bExtIntParamCommand = ((command & 0x40000000) > 0);
 
             long c = 4;
             if (bIntParamCommand) {
+                c += 8;
+            }
+
+            if (bExtIntParamCommand) {
                 c += 8;
             }
 
@@ -296,6 +334,22 @@ namespace GameClient {
                 data[i + 1] = (Byte)((intparam2 & 0x00FF0000) >> 16);
                 data[i + 2] = (Byte)((intparam2 & 0x0000FF00) >> 8);
                 data[i + 3] = (Byte)(intparam2 & 0x000000FF);
+
+                i += 4;
+            }
+
+            if (bExtIntParamCommand) {
+                data[i] = (Byte)((intparam3 & 0xFF000000) >> 24);
+                data[i + 1] = (Byte)((intparam3 & 0x00FF0000) >> 16);
+                data[i + 2] = (Byte)((intparam3 & 0x0000FF00) >> 8);
+                data[i + 3] = (Byte)(intparam3 & 0x000000FF);
+
+                i += 4;
+
+                data[i] = (Byte)((intparam4 & 0xFF000000) >> 24);
+                data[i + 1] = (Byte)((intparam4 & 0x00FF0000) >> 16);
+                data[i + 2] = (Byte)((intparam4 & 0x0000FF00) >> 8);
+                data[i + 3] = (Byte)(intparam4 & 0x000000FF);
 
                 i += 4;
             }

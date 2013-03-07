@@ -13,10 +13,11 @@
 class CRoom: public TGFFreeable {
 protected:
 public:
-   TGFProperty<long> x;
-   TGFProperty<long> y;
-   TGFStringProperty description;
-   TGFProperty<BYTE> envtype;
+   long x;
+   long y;
+   TGFString description;
+   BYTE envtype;
+   bool traversable;
 
    CRoom();
    ~CRoom();

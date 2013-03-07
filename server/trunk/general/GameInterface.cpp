@@ -35,6 +35,8 @@ void CGameInterface::DoChecks() {
 
       throw 2; 
    }
+
+   this->sLastactionInfo.setValue_ansi("");
 }
 
 
@@ -46,7 +48,7 @@ bool CGameInterface::Login(TGFString *username, TGFString *password) {
 
       unsigned long cid = acc->getMainCharId();
       if (cid != 0) {
-         this->loggedInCharacter = new CCharacter( Global_DBConnection(), cid, false );
+         this->loggedInCharacter = new CCharacter( Global_DBConnection(), cid );
          Global_World()->generateUniqueWorldId(this->loggedInCharacter);
          this->nickname.set( this->loggedInCharacter->name.get() );
       }
@@ -110,9 +112,9 @@ BYTE CGameInterface::GetRoomInfo(TGFString *s) {
 
    CRoom *room = Global_World()->getRoom(x,y);
    if ( room != NULL ) {
-      s->setValue(room->description.link());
+      s->setValue(&(room->description));
 
-      envtype = room->envtype.get();
+      envtype = room->envtype;
    } else {
       // todo: error! room doesn't exist!
 
@@ -149,10 +151,12 @@ bool CGameInterface::run_walkforward() {
 
    CRoom *room = Global_World()->getRoom(x,y+1);
    if ( room != NULL ) {
-      this->loggedInCharacter->y.set( y + 1 );
-      Global_CharacterUpdate()->schedule(this->loggedInCharacter);
+      if (room->traversable) {
+         this->loggedInCharacter->y.set( y + 1 );
+         Global_CharacterUpdate()->schedule(this->loggedInCharacter);
 
-      return true;
+         return true;
+      }
    }
 
    return false;
@@ -166,10 +170,12 @@ bool CGameInterface::run_walkbackwards() {
 
    CRoom *room = Global_World()->getRoom(x,y-1);
    if ( room != NULL ) {
-      this->loggedInCharacter->y.set( y - 1 );
-      Global_CharacterUpdate()->schedule(this->loggedInCharacter);
+      if (room->traversable) {
+         this->loggedInCharacter->y.set( y - 1 );
+         Global_CharacterUpdate()->schedule(this->loggedInCharacter);
 
-      return true;
+         return true;
+      }
    }
 
    return false;
@@ -183,10 +189,12 @@ bool CGameInterface::run_walkleft() {
 
    CRoom *room = Global_World()->getRoom(x-1,y);
    if ( room != NULL ) {
-      this->loggedInCharacter->x.set( x - 1 );
-      Global_CharacterUpdate()->schedule(this->loggedInCharacter);
+      if (room->traversable) {
+         this->loggedInCharacter->x.set( x - 1 );
+         Global_CharacterUpdate()->schedule(this->loggedInCharacter);
 
-      return true;
+         return true;
+      }
    }
 
 	return false;
@@ -199,10 +207,12 @@ bool CGameInterface::run_walkright() {
 
    CRoom *room = Global_World()->getRoom(x+1,y);
    if ( room != NULL ) {
-      this->loggedInCharacter->x.set( x + 1 );
-      Global_CharacterUpdate()->schedule(this->loggedInCharacter);
+      if (room->traversable) {
+         this->loggedInCharacter->x.set( x + 1 );
+         Global_CharacterUpdate()->schedule(this->loggedInCharacter);
 
-      return true;
+         return true;
+      }
    }
 
 	return false;
@@ -214,25 +224,38 @@ bool CGameInterface::run_teleport( long x, long y ) {
 
    this->sLastactionInfo.setValue_ansi("You're being teleported.");
 
-	this->loggedInCharacter->x.set(x);
-	this->loggedInCharacter->y.set(y);
-	Global_CharacterUpdate()->schedule(this->loggedInCharacter);
+   CRoom *room = Global_World()->getRoom(x,y);
+   if ( room != NULL ) {
+      if (room->traversable) {
+	      this->loggedInCharacter->x.set(x);
+	      this->loggedInCharacter->y.set(y);
+	      Global_CharacterUpdate()->schedule(this->loggedInCharacter);
 
-	return true;
+         return false;
+      }
+   }
+
+	return false;
 }
 
-bool CGameInterface::attack_start(DWORD32 iCharId) {
+bool CGameInterface::attack_start(DWORD32 iWorldId) {
    this->DoChecks();
 
-   CCharacter *cTarget = Global_World()->getCharacter(iCharId);
+   CCharacter *cTarget = Global_World()->getCharacter(iWorldId);
    if (cTarget == NULL) {
       this->sLastactionInfo.setValue_ansi("Error");
    } else {
       if (cTarget->isAlive()) {
          CCombat *combat = Global_World()->getCombat(this->loggedInCharacter->x.get(),this->loggedInCharacter->y.get());
-         combat->joinCombat(cTarget);
+
+         // start attack by targetting and starting combat
          this->loggedInCharacter->setTarget(cTarget);
          combat->joinCombat(this->loggedInCharacter);
+
+         // target targets and hits back in return
+         cTarget->setTarget(this->loggedInCharacter);
+         combat->joinCombat(cTarget);
+
          combat->start();
 
          return true;
@@ -251,7 +274,7 @@ bool CGameInterface::interact_greet(DWORD32 iCharId, TGFString *sGreeting) {
    if (cTarget == NULL) {
       this->sLastactionInfo.setValue_ansi("Error");
    } else {
-      if (cTarget->isNPC.get()) {
+      if (cTarget->isNPC) {
          return Global_World()->getGreeting(iCharId, this->loggedInCharacter, sGreeting);
       } else {
          this->sLastactionInfo.setValue_ansi("Error");
@@ -270,8 +293,8 @@ int CGameInterface::interact_getQuests(DWORD32 iCharId, TGFVector *v) {
 
       return -1;
    } else {
-      if (cTarget->isNPC.get()) {
-         return cTarget->getQuests(this->loggedInCharacter, v);
+      if (cTarget->isNPC) {
+         return reinterpret_cast<CNPCharacter *>(cTarget)->getQuests(this->loggedInCharacter, v);
       } else {
          this->sLastactionInfo.setValue_ansi("Error");
          
