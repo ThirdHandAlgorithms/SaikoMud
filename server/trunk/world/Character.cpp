@@ -2,15 +2,17 @@
 #include "Character.h"
 #include "../world/quest.h"
 
-CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool isNPC ) : CCombatant() {
-   WorldId = 0;
+#include "../world/Items.h"
+
+CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id ) : CCombatant() {
+   this->WorldId = 0;
 
    this->conn = pConn;
-   this->id.internalSet(id);
+   this->id = id;
 
-   this->isNPC.internalSet(isNPC);
+   this->isNPC = false;
 
-   this->quests.autoClear = false;
+   this->timeofdeath = 0;
 
    this->greeting.set("");
 
@@ -18,22 +20,32 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id, bool 
 }
 
 CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery ): CCombatant() {
-   WorldId = 0;
+   this->WorldId = 0;
 
    this->conn = pConn;
+   this->isNPC = false;
    
-   this->quests.autoClear = false;
+   this->timeofdeath = 0;
 
+   this->loadFromRecord(pQuery);
+}
+
+CCharacter::~CCharacter() {
+}
+
+void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
    TGFBRecord rec;
    TGFBFields flds;
 
    pQuery->fetchFields(&flds);
    pQuery->fetchRecord(&rec);
 
-   this->id.internalSet( rec.getValue(flds.getFieldIndex_ansi("id"))->asInteger() );
+   this->id = rec.getValue(flds.getFieldIndex_ansi("id"))->asInteger();
 
    bool bIsNPC = (rec.getValue(flds.getFieldIndex_ansi("account_id"))->asInteger() == 0);
-   this->isNPC.internalSet(bIsNPC);
+   this->isNPC = bIsNPC;
+
+   this->faction = rec.getValue(flds.getFieldIndex_ansi("faction_id"))->asInteger();
 
    this->name.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("name"))->asString() );
    this->level.set( rec.getValue(flds.getFieldIndex_ansi("level"))->asInteger() );
@@ -46,9 +58,6 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery 
    this->greeting.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("greeting"))->asString() );
 }
 
-CCharacter::~CCharacter() {
-}
-
 void CCharacter::calculateStats() {
    // reset stats
    this->currentstats.strength.set(0);
@@ -56,8 +65,6 @@ void CCharacter::calculateStats() {
    this->currentstats.protection.set(0);
 
    // load gear
-   long iCharId = this->id.internalGet();
-
    TGFString sql(
    "SELECT stats.strength, stats.energy, stats.protection \
    FROM `charslots` \
@@ -66,7 +73,7 @@ void CCharacter::calculateStats() {
    where charslots.char_id=:id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("id")->setInteger(iCharId);
+   qry.findOrAddParam("id")->setInteger(this->id);
    
    TSquirrelReturnData err;
    if ( qry.open(&err) ) {
@@ -89,40 +96,16 @@ void CCharacter::calculateStats() {
    // apply stat modifiers
 }
 
-void CCharacter::_addQuest(CQuest *q) {
-   if ( this->quests.findElement(q) == -1 ) {
-      this->quests.addElement(q);
-   }
-}
-
 void CCharacter::load() {
-   long iCharId = this->id.internalGet();
-
    TGFString sql("select * from `char` where id=:id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("id")->setInteger(iCharId);
+   qry.findOrAddParam("id")->setInteger(this->id);
    
    TSquirrelReturnData err;
    if ( qry.open(&err) ) {
-      TGFBFields flds;
-      qry.fetchFields(&flds);
       if ( qry.next() ) {
-         TGFBRecord rec;
-         qry.fetchRecord(&rec);
-
-         this->name.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("name"))->asString() );
-         this->level.set( rec.getValue(flds.getFieldIndex_ansi("level"))->asInteger() );
-         this->xp.set( rec.getValue(flds.getFieldIndex_ansi("totalxp"))->asInteger() );
-         this->money.set( rec.getValue(flds.getFieldIndex_ansi("money"))->asInteger() );
-         this->x.set( rec.getValue(flds.getFieldIndex_ansi("x"))->asInteger() );
-         this->y.set( rec.getValue(flds.getFieldIndex_ansi("y"))->asInteger() );
-         this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
-
-         this->greeting.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("greeting"))->asString() );
-
-         // wordt intern bijgehouden
-         //this->WorldId = rec.getValue(flds.getFieldIndex_ansi("current_worldid"))->asInteger();
+         this->loadFromRecord(&qry);
       }
 
       qry.close();
@@ -131,11 +114,25 @@ void CCharacter::load() {
    }
 }
 
+void CCharacter::loadBagslots() {
+}
+
+bool CCharacter::addToBags(unsigned long iItemId) {
+   printf("CCharacter::addToBags(%d) TODO", iItemId);
+
+
+   // returns false when bags are full
+   return false;
+}
+
+void CCharacter::loadActionSlots() {
+}
+
 void CCharacter::save() {
    TGFString sql("update `char` set totalxp=:totalxp, level=:level, money=:money, x=:x, y=:y, current_worldid=:current_worldid where id=:id");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("id")->setInteger(this->id.internalGet());
+   qry.findOrAddParam("id")->setInteger(this->id);
    qry.findOrAddParam("totalxp")->setInteger(this->xp.get());
    qry.findOrAddParam("level")->setInteger(this->level.get());
    qry.findOrAddParam("money")->setInteger(this->money.get());
@@ -155,10 +152,10 @@ void CCharacter::save() {
 bool CCharacter::hasDoneQuest(long iQuestId) {
    bool bDoneQuest = false;
 
-   TGFString sql("select * from `questhistory` where char_id=:char_id and quest_id=:quest_id");
+   TGFString sql("select * from `questhistory` where char_id=:char_id and quest_id=:quest_id and dt_completed!=0");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
-   qry.findOrAddParam("char_id")->setInteger(this->id.internalGet());
+   qry.findOrAddParam("char_id")->setInteger(this->id);
    qry.findOrAddParam("quest_id")->setInteger(iQuestId);
    
    TSquirrelReturnData err;
@@ -184,10 +181,99 @@ bool CCharacter::hasDoneQuest(long iQuestId) {
    return bDoneQuest;
 }
 
-int CCharacter::getQuests(CCharacter *cFor, TGFVector *vQuests) {
+// ----------------------------------------------------------------
+
+CNPCharacter::CNPCharacter(TMySQLSquirrelConnection *pConn, unsigned long id) : CCharacter(pConn, id) {
+   this->quests.autoClear = false;
+   this->isNPC = true;
+
+   this->loadDroppool();
+}
+
+CNPCharacter::CNPCharacter(TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery) : CCharacter(pConn, pQuery) {
+   this->quests.autoClear = false;
+   this->isNPC = true;
+
+   this->loadDroppool();
+}
+
+CNPCharacter::~CNPCharacter() {
+}
+
+
+void CNPCharacter::_addQuest(CQuest *q) {
+   if ( this->quests.findElement(q) == -1 ) {
+      this->quests.addElement(q);
+   }
+}
+
+void CNPCharacter::loadDroppool() {
+   TGFString sql("select * from `droppool` where char_id=:char_id");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(this->id);
+   
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      TGFBFields flds;
+      qry.fetchFields(&flds);
+
+      int chanceind = flds.getFieldIndex_ansi("chance");
+      int itemidind = flds.getFieldIndex_ansi("item_id");
+
+      while (qry.next()) {
+         TGFBRecord rec;
+         qry.fetchRecord(&rec);
+
+         CDropPoolItem *item = new CDropPoolItem();
+         item->chance = rec.getValue(chanceind)->asDouble();
+         item->item_id = rec.getValue(itemidind)->asInteger();
+
+         this->droppool.addElement(item);
+      }
+      qry.close();
+   }
+}
+
+unsigned long CNPCharacter::getRandomItemDrop() {
+   double r = (rand() % 10000) / 100.0;
+
+   double chanceinc = 0;
+
+   int c = this->droppool.size();
+   for (int i = 0; i < c; i++) {
+      CDropPoolItem *item = static_cast<CDropPoolItem *>(this->droppool.elementAt(i));
+      if (item->chance < 100) {
+         if ((r >= chanceinc) && (r < chanceinc + item->chance)) {
+            return item->item_id;
+         }
+
+         chanceinc += item->chance;
+      }
+   }
+
+   return 0;
+}
+
+std::vector<unsigned long> CNPCharacter::getPossibleQuestDrops() {
+   std::vector<unsigned long> v;
+
+   double chanceinc = 0;
+
+   int c = this->droppool.size();
+   for (int i = 0; i < c; i++) {
+      CDropPoolItem *item = static_cast<CDropPoolItem *>(this->droppool.elementAt(i));
+      if (item->chance >= 100) {
+         v.push_back(item->item_id);
+      }
+   }
+
+   return v;
+}
+
+int CNPCharacter::getQuests(CCharacter *cFor, TGFVector *vQuests) {
    int total = 0;
    bool bInclude = false;
-   char crlf[] = GFWIN32NEXTLINE;
 
    TGFBValue v;
 

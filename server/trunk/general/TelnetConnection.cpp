@@ -34,7 +34,7 @@ bool CTelnetConnection::inBinaryMode() {
    return this->bBinaryMode;
 }
 
-void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intparam2, TGFString *s) {
+void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intparam2, TGFString *s, DWORD32 intparam3, DWORD32 intparam4) {
    DWORD32 strlen = 0;
    if (s != NULL) {
       strlen = s->getLength();
@@ -48,6 +48,7 @@ void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intp
 
    bool bIsStrCommand = ((command & 0x10000000) > 0);
    bool bIntParamCommand = ((command & 0x20000000) > 0);
+   bool bExtIntParamCommand = ((command & 0x40000000) > 0);
 
    if (bIntParamCommand) {
       tmp.append((intparam1 & 0xff000000) >> 24);
@@ -59,6 +60,18 @@ void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intp
       tmp.append((intparam2 & 0x00ff0000) >> 16);
       tmp.append((intparam2 & 0x0000ff00) >> 8);
       tmp.append((intparam2 & 0x000000ff));
+   }
+
+   if (bExtIntParamCommand) {
+      tmp.append((intparam3 & 0xff000000) >> 24);
+      tmp.append((intparam3 & 0x00ff0000) >> 16);
+      tmp.append((intparam3 & 0x0000ff00) >> 8);
+      tmp.append((intparam3 & 0x000000ff));
+
+      tmp.append((intparam4 & 0xff000000) >> 24);
+      tmp.append((intparam4 & 0x00ff0000) >> 16);
+      tmp.append((intparam4 & 0x0000ff00) >> 8);
+      tmp.append((intparam4 & 0x000000ff));
    }
 
    if (bIsStrCommand) {
@@ -73,8 +86,8 @@ void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intp
    this->send(&tmp);
 }
 
-bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s) {
-   long iBufLen = buffer.getLength();
+bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s, DWORD32 *intparam3, DWORD32 *intparam4) {
+   unsigned long iBufLen = buffer.getLength();
 
    if (iBufLen < 4) {
       return false;
@@ -91,25 +104,38 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
 
    bool bIsStrCommand = ((iCommand & 0x10000000) > 0);
    bool bIntParamCommand = ((iCommand & 0x20000000) > 0);
+   bool bExtIntParamCommand = ((iCommand & 0x40000000) > 0);
 
    // void = 4
    // int = 12 (cmd 4 + int1 4 + int2 4)
    // str = 4+4 = 8
    // int+str = 12 + 4 = 16
 
-   if (!(bIsStrCommand || bIntParamCommand)) {
+   if (!(bIsStrCommand || bIntParamCommand || bExtIntParamCommand)) {
       *command = iCommand;
 
       buffer.remove(0, 3);
 
       return true;
-   } else if ((bIsStrCommand || bIntParamCommand) && (iBufLen < 12) ) {
-      return false;
-   } else if (bIntParamCommand && bIsStrCommand && (iBufLen < 16)) {
-      return false;
+   } else {
+      int iMin = 0;
+
+      if (bIsStrCommand) {
+         iMin += 4;
+      }
+      if (bIntParamCommand) {
+         iMin += 8;
+      }
+      if (bExtIntParamCommand) {
+         iMin += 8;
+      }
+
+      if (iBufLen < iMin) {
+         return false;
+      }
    }
 
-   long i = 4;
+   unsigned long i = 4;
    if (bIntParamCommand) {
       DWORD32 iIntParam1 = 0;
       DWORD32 iIntParam2 = 0;
@@ -129,6 +155,29 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
       iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+3]);
 
       *intparam2 = iIntParam2;
+
+      i += 4;
+   }
+
+   if (bExtIntParamCommand) {
+      DWORD32 iIntParam3 = 0;
+      DWORD32 iIntParam4 = 0;
+
+      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
+      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
+      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
+      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+3]);
+
+      *intparam3 = iIntParam3;
+
+      i += 4;
+
+      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
+      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
+      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
+      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+3]);
+
+      *intparam4 = iIntParam4;
 
       i += 4;
    }
@@ -176,13 +225,13 @@ void CTelnetConnection::inform_lastaction() {
 
    DWORD32 iWorldId = this->gameintf.GetLastActionInfo(&tmp);
 
-   if (!bBinaryMode) {
-      if (tmp.getLength() > 0) {
+   if (tmp.getLength() > 0) {
+      if (!bBinaryMode) {
          tmp.append_ansi("\r\n");
          this->send(&tmp);
+      } else {
+         this->sendBin(c_response_lastactioninfo, iWorldId, 0, &tmp);
       }
-   } else {
-      this->sendBin(c_response_lastactioninfo, iWorldId, 0, &tmp);
    }
 }
 
@@ -273,6 +322,16 @@ void CTelnetConnection::inform_earnxp(long xp, long totalxp) {
       this->send(&tmp);
    } else {
       this->sendBin(c_event_earnsxp, xp, totalxp, NULL);
+   }
+}
+
+void CTelnetConnection::inform_combatevent(DWORD32 iSourceWorldId, DWORD32 iTargetWorldId, int eventtype, int amount, TGFString *combatmsg) {
+   TGFString tmp("");
+
+   if (!bBinaryMode) {
+      // note: already transmitted through combat chat channel
+   } else {
+      this->sendBin(c_event_combatmsg, iSourceWorldId, iTargetWorldId, combatmsg, eventtype, amount);
    }
 }
 
@@ -379,19 +438,13 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
 
       } else {
 
-         // todo: make server understand binary speak
-
-         //copy.startsWith_ansi("/binarymode_on\r\n")
-
          DWORD32 command;
-         DWORD32 intparam1;
-         DWORD32 intparam2;
+         DWORD32 intparam1, intparam2, intparam3, intparam4;
          TGFString s;
 
-         while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s) )  {
+         while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s, &intparam3, &intparam4) )  {
             bool bMovementActionOk = false;
 
-            printf("received command %08x\n", command);
             if (command == c_run_walkbackwards) {
                bActionOk = this->gameintf.run_walkbackwards();
                bMovementActionOk = bActionOk;

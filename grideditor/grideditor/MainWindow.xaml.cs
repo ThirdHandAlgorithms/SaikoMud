@@ -126,6 +126,25 @@ namespace grideditor {
                 rect.SetValue(Canvas.LeftProperty, r.Left);
                 rect.SetValue(Canvas.TopProperty, r.Top);
                 canvas1.Children.Add(rect);
+
+                if (pRow.active != 1) {
+                    Line myLine1 = new Line();
+                    Line myLine2 = new Line();
+                    myLine1.X1 = r.Left;
+                    myLine1.Y1 = r.Top;
+                    myLine1.X2 = r.Left + 10;
+                    myLine1.Y2 = r.Top + 10;
+                    myLine2.X1 = r.Left + 10;
+                    myLine2.Y1 = r.Top;
+                    myLine2.X2 = r.Left;
+                    myLine2.Y2 = r.Top + 10;
+                    myLine1.StrokeThickness = 1;
+                    myLine2.StrokeThickness = 1;
+                    myLine1.Stroke = System.Windows.Media.Brushes.Black;
+                    myLine2.Stroke = System.Windows.Media.Brushes.Black;
+                    canvas1.Children.Add(myLine1);
+                    canvas1.Children.Add(myLine2);
+                }
             }
         }
 
@@ -155,13 +174,6 @@ namespace grideditor {
             DrawWorkspaceGrid();
         }
 
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-            Point mouse = e.GetPosition(canvas1);
-            this.selectedroom = this.GetRoomPositionByMousePos(mouse);
-
-            LoadSelectedRoom();
-        }
-
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             infowin.Left = this.Left - infowin.Width - 10;
             infowin.Top = this.Top;
@@ -174,7 +186,7 @@ namespace grideditor {
             infowin.Close();
         }
 
-        protected void LoadSelectedRoom() {
+        protected void LoadSelectedRoom(bool bToggleActive) {
             uint envtype = 1;
             string desc = "";
             bool traversable = true;
@@ -188,18 +200,32 @@ namespace grideditor {
                 traversable = (existingrow.active == 1);
             }
 
+            if (bToggleActive) {
+                traversable = !traversable;
+            }
+
             adapter.Fill(table);
 
             DrawWorkspaceGrid();
 
             infowin.setRoomInfo(this.selectedroom, desc, envtype, traversable, this.SetRoomInfo);
+            if (bToggleActive) {
+                infowin.save();
+            }
+        }
+
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+            Point mouse = e.GetPosition(canvas1);
+            this.selectedroom = this.GetRoomPositionByMousePos(mouse);
+
+            LoadSelectedRoom(false);
         }
 
         private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
             Point mouse = e.GetPosition(canvas1);
             this.selectedroom = this.GetRoomPositionByMousePos(mouse);
-
-            LoadSelectedRoom();
+            
+            LoadSelectedRoom(true);
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e) {
@@ -213,7 +239,7 @@ namespace grideditor {
                 this.selectedroom.X += 1;
             }
 
-            LoadSelectedRoom();
+            LoadSelectedRoom(false);
         }
     }
 }

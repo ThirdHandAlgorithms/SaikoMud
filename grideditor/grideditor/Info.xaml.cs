@@ -20,8 +20,15 @@ namespace grideditor {
         protected string desc = "";
         protected RoomInfoCallback func;
 
+        protected List<uint> npcs = new List<uint>();
+
         public Info() {
             InitializeComponent();
+        }
+
+        public void clearNpcs() {
+            lstNPCs.Items.Clear();
+            npcs.Clear();
         }
 
         public void feedEnvtypes( saikomudDataSet.environmentDataTable table ) {
@@ -33,6 +40,11 @@ namespace grideditor {
             foreach (saikomudDataSet.environmentRow pRow in table.Rows) {
                 comboBox1.Items.Add( new EnvTypeItem(pRow) );
             }
+        }
+
+        public void addNPC( uint id, string name ) {
+            lstNPCs.Items.Add(name);
+            npcs.Add(id);
         }
 
         protected int getCbxIndexOfEnv( uint id ) {
@@ -64,11 +76,16 @@ namespace grideditor {
             comboBox1.SelectedIndex = getCbxIndexOfEnv(envtype);
         }
 
-        private void button1_Click(object sender, RoutedEventArgs e) {
-            if ( func != null ) {
+        public void save() {
+            if (func != null) {
                 EnvTypeItem item = (EnvTypeItem)(comboBox1.SelectedItem);
-                func(xy, textBox1.Text, item.id, true);
+                func(xy, textBox1.Text, item.id, (bool)checkBox1.IsChecked);
             }
+        }
+
+        private void button1_Click(object sender, RoutedEventArgs e) {
+            save();
+
             textBox1.Focus();
         }
 

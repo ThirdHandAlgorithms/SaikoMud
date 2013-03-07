@@ -20,6 +20,9 @@ class CCombat;
 #define COMBATEVENT_HEAL 5
 #define COMBATEVENT_HEALCRIT 6
 
+#define COMBATEVENT_DEATH 9
+
+
 #define COMBATSOURCE_AUTOATTACK 0
 
 
@@ -51,6 +54,8 @@ protected:
 
    virtual void calculateStats();
 public:
+   DWORD32 WorldId;
+
    TGFStringProperty name;
    TGFProperty<unsigned int> level;
    TGFProperty<unsigned int> maxhealthpool;

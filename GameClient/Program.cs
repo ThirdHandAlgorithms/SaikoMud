@@ -9,6 +9,7 @@ using SdlDotNet.Graphics.Sprites;
 using SdlDotNet.Core;
 using SdlDotNet.Input;
 using System.Drawing;
+using System.Diagnostics;
 
 namespace GameClient {
 
@@ -39,13 +40,15 @@ namespace GameClient {
     class Program {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
+
+        // todo: why am i using m_, what kind of shitty standard is that??
         private Surface m_SpriteSheet;
         private Surface m_vidsurf;
         private Surface m_statsandslots;
         private Surface m_infobox;
         private Surface m_npcDialogBox;
-
         private Surface m_spriteNpcs;
+        private Surface m_DeathScreen;
 
         private Rectangle MapArea = new Rectangle();
         private Rectangle ActionInfoArea = new Rectangle();
@@ -59,6 +62,11 @@ namespace GameClient {
         private Rectangle NPCDialogArea = new Rectangle();
         private Rectangle NPCDialogQuestTitleArea = new Rectangle();
         private Rectangle NPCDialogQuestTextArea = new Rectangle();
+
+        private Rectangle DeathMessageArea = new Rectangle();
+
+        private Point LastHeroPos = new Point();
+        private Point NewHeroPos = new Point();
 
         private UInt32 CurrentNPC = 0;
 
@@ -91,6 +99,8 @@ namespace GameClient {
 
         private String LastEventStr = "";
         private DateTime LastEventTime = DateTime.Now;
+
+        private long lLoopTime = 0;
 
         string[] crlf = { "" + (char)(13) + (char)(10) };
 
@@ -136,6 +146,9 @@ namespace GameClient {
             MapArea.Height = m_vidsurf.Height - ActionInfoArea.Height - 100;
             MapArea.Width = m_vidsurf.Width - 100;
 
+            DeathMessageArea.X = 100;
+            DeathMessageArea.Y = 100;
+
             SlotsAndStatsArea.X = m_vidsurf.Width - 550;
             SlotsAndStatsArea.Y = 25;
 
@@ -177,6 +190,8 @@ namespace GameClient {
 
             net.earnsxp += OnEarnXP;
             net.statsinfo += OnStatsInfo;
+
+            net.combatmsg += OnCombatEvent;
 
             net.Connect();
 
@@ -269,7 +284,12 @@ namespace GameClient {
             // addxp intparam1
             // totalxp intparam2
 
-            LastEventStr = "You have earned " + intparam1 + " XP";
+            Int32 xpgain = (Int32)intparam1;
+            if (xpgain < 0) {
+                LastEventStr = "You have lost " + Math.Abs(xpgain) + " XP";
+            } else {
+                LastEventStr = "You have earned " + xpgain + " XP";
+            }
             LastEventTime = DateTime.Now;
         }
 
@@ -297,6 +317,36 @@ namespace GameClient {
                 }
             }
 
+        }
+
+        public void OnCombatEvent(UInt32 command, UInt32 source, UInt32 target, String str, UInt32 eventtype, UInt32 amount) {
+            LastEventStr = str;
+            LastEventTime = DateTime.Now;
+
+            // todo: do something with this information.... combatlog?
+            // and then request stats to update character display..
+
+            frmDebug.addCombatMessage(str);
+
+            if (source == CharSelf.WorldID) {
+                StrActionInfo = str;
+                LastActionTime = DateTime.Now;
+            }
+
+            // always request current stats if event is targetted at self, every event influences
+            if (target == CharSelf.WorldID) {
+                net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
+
+                if (eventtype == GameNet.COMBATEVENT_DEATH) {
+                    // we died!
+
+                    // ... now what...
+
+                    // TODO: GAME OVER overlay
+                    // + teleport player to respawn point
+
+                }
+            }
         }
 
         public int FindPreviousSpace(String s, int iLastPos) {
@@ -398,7 +448,13 @@ namespace GameClient {
             m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
 
             m_npcDialogBox = new Surface(@"..\..\Data\npc_dialog.png");
-            m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_npcDialogBox.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            var m_level_music = new SdlDotNet.Audio.Music(@"..\..\Data\intro_test.mp3");
+            m_level_music.Play(1);
+
+            m_DeathScreen = new Surface(@"..\..\Data\deathscreen.png");
+            m_DeathScreen.SourceColorKey = Color.FromArgb(255, 0, 255);
         }
 
         private void LoadTextures() {
@@ -502,22 +558,33 @@ namespace GameClient {
         private void RenderSlotsAndStats() {
             Video.Screen.Blit(m_statsandslots, SlotsAndStatsArea);
 
-            Surface m_Health     = font_actioninfo.Render("HP", Color.Black);   // current health, not a stat
+            Surface m_Level = font_actioninfo.Render("Level", Color.Black);
+            Surface m_XP = font_actioninfo.Render("XP", Color.Black);
+
+            Surface m_Health = font_actioninfo.Render("HP", Color.Black);   // current health, not a stat
             Surface m_Strength   = font_actioninfo.Render("Strength", Color.Black);
             Surface m_Energy     = font_actioninfo.Render("Energy", Color.Black);
             Surface m_Protection = font_actioninfo.Render("Protection", Color.Black);
 
+            Surface m_LevelVal = font_actioninfo.Render("" + CharSelf.level, Color.Black);
+            Surface m_XPVal = font_actioninfo.Render("" + CharSelf.totalxp, Color.Black);
             Surface m_HealthVal     = font_actioninfo.Render("" + CharSelf.hp, Color.Black);
             Surface m_StrengthVal = font_actioninfo.Render("" + CharSelf.strength, Color.Black);
             Surface m_EnergyVal = font_actioninfo.Render("" + CharSelf.energy, Color.Black);
             Surface m_ProtectionVal = font_actioninfo.Render("" + CharSelf.protection, Color.Black);
 
-
+            // statnames
             StatsTextArea.X = SlotsAndStatsArea.X + 250;
             StatsTextArea.Width = 530;
             StatsTextArea.Height = 25;
 
             StatsTextArea.Y = SlotsAndStatsArea.Y + 10;
+            Video.Screen.Blit(m_Level, StatsTextArea);
+
+            StatsTextArea.Y += 25;
+            Video.Screen.Blit(m_XP, StatsTextArea);
+
+            StatsTextArea.Y += 25;
             Video.Screen.Blit(m_Health, StatsTextArea);
 
             StatsTextArea.Y += 25;
@@ -529,9 +596,16 @@ namespace GameClient {
             StatsTextArea.Y += 25;
             Video.Screen.Blit(m_Protection, StatsTextArea);
 
+            // values
             StatsTextArea.X = SlotsAndStatsArea.X + 250 + 100;
 
             StatsTextArea.Y = SlotsAndStatsArea.Y + 10;
+            Video.Screen.Blit(m_LevelVal, StatsTextArea);
+
+            StatsTextArea.Y += 25;
+            Video.Screen.Blit(m_XPVal, StatsTextArea);
+
+            StatsTextArea.Y += 25;
             Video.Screen.Blit(m_HealthVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
@@ -542,7 +616,33 @@ namespace GameClient {
 
             StatsTextArea.Y += 25;
             Video.Screen.Blit(m_ProtectionVal, StatsTextArea);
+        }
 
+        private void RenderHero() {
+            long xDiff = NewHeroPos.X - LastHeroPos.X;
+            long yDiff = NewHeroPos.Y - LastHeroPos.Y;
+
+            if (lLoopTime != 0) {
+                if (xDiff != 0) {
+                    hero.X += (int)(xDiff * (lLoopTime / 1000));
+                }
+
+                if (yDiff != 0) {
+                    hero.Y += (int)(xDiff * (lLoopTime / 1000));
+                }
+            } else {
+                hero.X = NewHeroPos.X;
+                hero.Y = NewHeroPos.Y;
+            }
+
+            if (hero.X == NewHeroPos.X) {
+                LastHeroPos.X = hero.X;
+            }
+            if (hero.Y == NewHeroPos.Y) {
+                LastHeroPos.Y = hero.Y;
+            }
+
+            Video.Screen.Blit(hero);
         }
 
         private void RenderWorld() {
@@ -570,16 +670,16 @@ namespace GameClient {
                     byte envtype = 0;
                     if (arrStrMap[y][x] == '@') {
                         envtype = this.RoomEnvType;
-                        hero.X = worldpoint.X;
-                        hero.Y = worldpoint.Y;
+                        NewHeroPos.X = worldpoint.X;
+                        NewHeroPos.Y = worldpoint.Y;
                     } else if ((arrStrMap[y][x] >= '0') && (arrStrMap[y][x] <= '9')) {
                         envtype = (byte)(UInt32.Parse(arrStrMap[y][x] + "") & 0xff);
                     } else if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
                         envtype = (byte)((arrStrMap[y][x] - 'A') & 0xff);
                     } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
                         envtype = (byte)((arrStrMap[y][x] - 'a') & 0xff);
-                        hero.X = worldpoint.X;
-                        hero.Y = worldpoint.Y;
+                        NewHeroPos.X = worldpoint.X;
+                        NewHeroPos.Y = worldpoint.Y;
                     } else {
                         envtype = 0;
                     }
@@ -604,8 +704,8 @@ namespace GameClient {
                 worldpoint.Y += sz.Height;
             }
 
-            
-            Video.Screen.Blit(hero);
+
+            RenderHero();
         }
 
         private void LoadHero() {
@@ -659,7 +759,17 @@ namespace GameClient {
                 MapArea.Y + hero.Height / 2);
         }
 
+        private void RenderDeath() {
+            //DeathMessageArea
+
+            Video.Screen.Blit(m_DeathScreen, DeathMessageArea);
+
+        }
+
         private void Events_Tick(object sender, TickEventArgs e) {
+            Stopwatch sw = new Stopwatch();
+
+            sw.Start();
 
             // Clear the screen, draw the hero and output to the window
             Video.Screen.Fill(Color.DarkGreen);
@@ -669,10 +779,18 @@ namespace GameClient {
                 RenderActionInfo();
                 RenderRoomInfo();
                 RenderNPCDialog();
+
+                if (CharSelf.hp == 0) {
+                    RenderDeath();
+                }
             } catch (System.ArgumentOutOfRangeException ex) {
                 //Console.WriteLine(ex.StackTrace.ToString());
             }
             Video.Screen.Update();
+
+            sw.Stop();
+
+            lLoopTime = sw.ElapsedMilliseconds;
         }
 
         private void Events_KeyboardDown(object sender, KeyboardEventArgs e) {
@@ -713,6 +831,11 @@ namespace GameClient {
 
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
+                    break;
+                case Key.KeypadMultiply:
+                    if (this.NPCsAvailable.Count() > 0) {
+                        net.SendBinToServer(GameNet.c_attack_start, this.NPCsAvailable[0].WorldID, 0, "");
+                    }
                     break;
                 case Key.Return:
                     // todo: getnpcname and id, start interaction

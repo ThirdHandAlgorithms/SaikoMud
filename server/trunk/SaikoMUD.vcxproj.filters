@@ -57,6 +57,12 @@
     <ClCompile Include="world\Quest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="world\Spells.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="world\Items.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="general\ChatChannel.h">
@@ -96,6 +102,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="world\Quest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="world\Spells.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="world\Items.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
