@@ -423,18 +423,15 @@ long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
 }
 
 void CWorld::onRespawnTimerCharacter(TGFFreeable *c) {
-
-   // timer tick 0 is instantly, despite interval tt
-   GFMillisleep(5000);
-
    CCharacter *cFor = reinterpret_cast<CCharacter *>(c);
+
+   cFor->timeofdeath = 0;
 
    if (!cFor->isNPC) {
       long x = 0, y = 0;
 	   cFor->x.set(x);
 	   cFor->y.set(y);
-      cFor->currenthealthpool.set(100);
-
+      cFor->currenthealthpool.set(cFor->maxhealthpool.get());
 	   Global_CharacterUpdate()->schedule(cFor);
 
       CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
@@ -447,8 +444,9 @@ void CWorld::onRespawnTimerCharacter(TGFFreeable *c) {
 
       CNPCharacter *npc = reinterpret_cast<CNPCharacter *>(cFor);
 
-      // TODO: schedule event to respawn NPC...
-      npc->timeofdeath = GFGetTimestamp();
+      cFor->currenthealthpool.set(cFor->maxhealthpool.get());
+	   Global_CharacterUpdate()->schedule(cFor);
+
    }
 }
 
@@ -477,22 +475,9 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       }
    }
 
-
    // schedule teleportation to nearest spawnpoint
-
-   this->onRespawnTimerCharacter(cFor);
-
-
-   // TODO: stupid timer doesn't work...
-   /*
-   TGFTimer *t = new TGFTimer();
-   t->setInterval(5000);
-   t->onTimerEvent.setDefaultParam(cFor);
-   t->onTimerEvent.addNotify( GFCreateNotify(TGFFreeable *,CWorld,this,&CWorld::onRespawnTimerCharacter) );
-   t->start();
-   
-   GFDisposable(t);
-   */
+   cFor->timeofdeath = GFGetTimestamp();
+   Global_RespawnThread()->add(cFor);
 }
 
 void CWorld::informAboutAllStats(CCharacter *cFor, CCharacter *cAbout) {

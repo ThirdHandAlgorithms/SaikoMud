@@ -5,6 +5,7 @@ CWorld *world = NULL;
 TMySQLSquirrelConnection *connection = NULL;
 CCharacterUpdate *ccupdate = NULL;
 CTelnetServe *server = NULL;
+CRespawnThread *respawnthread = NULL;
 
 
 CWorld *Global_World() {
@@ -23,16 +24,26 @@ CTelnetServe *Global_Server() {
    return server;
 }
 
+CRespawnThread *Global_RespawnThread() {
+   return respawnthread;
+}
+
 bool initGameGlobals() {
    connection = new TMySQLSquirrelConnection();
    world = new CWorld();
    ccupdate = new CCharacterUpdate();
    server = new CTelnetServe();
+   respawnthread = new CRespawnThread();
+
+   respawnthread->start();
 
    return true;
 }
 
 void finiGameGlobals() {
+   delete respawnthread;
+   server = NULL;
+
    delete server;
    server = NULL;
 

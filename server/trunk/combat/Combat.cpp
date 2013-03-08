@@ -82,14 +82,14 @@ void CCombatant::combatcycle() {
 
 bool CCombatant::rollHit( CCombatant *target ) {
    int roll = combat->getDiceRoll();
-   int lvldiff = this->level.get() - target->level.get();
-   return ( roll >= (30 + (lvldiff * 1.5)) );
+   int lvldiff = target->level.get() - this->level.get();
+   return ( roll >= (30 + (lvldiff * 10)) );
 }
 
 bool CCombatant::rollCrit( CCombatant *target ) {
    int roll = combat->getDiceRoll();
-   int lvldiff = this->level.get() - target->level.get();
-   return ( roll >= (40 + lvldiff) );
+   int lvldiff = target->level.get() - this->level.get();
+   return ( roll >= (40 + (lvldiff * 5)) );
 }
 
 int CCombatant::rollAutoattackDamage() {
@@ -177,6 +177,11 @@ int CCombatant::affectWithHealing( int combatevent, int amount ) {
 }
 
 void CCombatant::calculateStats() {
+   int lvl = this->level.get();
+
+   this->currentstats.energy.set(lvl);
+   this->currentstats.strength.set(lvl);
+   this->currentstats.protection.set(lvl);
 }
 
 CBaseCombatStats *CCombatant::getCurrentStats() {
@@ -259,7 +264,7 @@ void CCombat::leaveCombat( CCombatant *c ) {
 }
 
 int CCombat::getDiceRoll() {
-   long r = rand() + rand() - rand() + rand() - rand() + rand();
+   long r = abs(rand() + rand() - rand() + rand() - rand() + rand());
 
    return (r % 101);
 }

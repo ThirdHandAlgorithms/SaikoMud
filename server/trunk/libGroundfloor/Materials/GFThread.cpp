@@ -43,6 +43,8 @@ TGFThread::TGFThread() {
    bThreadIsCreated     = false;
    bExceptionOccurred   = false;
 
+   bSleepAhead          = false;
+
    iDefaultSleepValue   = 10;
 
    setInterval( 1 );
@@ -123,6 +125,10 @@ void TGFThread::executionloop() {
    GThreadStartNotify.execute(this);
    try {
 
+      if (bSleepAhead) {
+         GFMillisleep( iCurrentInterval );
+      }
+
       while ( !bShouldTerminate ) {
          execute();
 
@@ -143,8 +149,9 @@ void TGFThread::executionloop() {
    GThreadEndNotify.execute(this);
 }
 
-void TGFThread::setInterval( unsigned int iInterval ) {
-   iCurrentInterval = iInterval;
+void TGFThread::setInterval( unsigned int iInterval, bool bSleepAhead ) {
+   this->iCurrentInterval = iInterval;
+   this->bSleepAhead = bSleepAhead;
 }
 
 void TGFThread::waitWhileRunning() {

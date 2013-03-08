@@ -25,6 +25,8 @@ protected:
    bool     bShouldTerminate;
    bool     bExceptionOccurred;
 
+   bool     bSleepAhead;
+
 #ifdef GF_OS_LINUX
    pthread_t aPThreadStruct;
 #endif
@@ -61,7 +63,7 @@ public:
    void join( TGFThread *anOtherThread );
 
    /// Sets the interval at which the execute() function is called.
-   void setInterval( unsigned int iInterval );
+   void setInterval( unsigned int iInterval, bool bSleepAhead = false );
 
    /// This function must stay public, yet should not be called.
    /** It is the entrypoint of the native thread and will loop every set interval until the thread is stopped. */
