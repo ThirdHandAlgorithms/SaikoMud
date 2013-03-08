@@ -63,6 +63,9 @@
     <ClCompile Include="world\Items.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="world\RespawnThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="general\ChatChannel.h">
@@ -108,6 +111,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="world\Items.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="world\RespawnThread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

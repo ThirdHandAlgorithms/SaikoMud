@@ -27,6 +27,7 @@
     <ClCompile Include="world\CharacterUpdate.cpp" />
     <ClCompile Include="world\Items.cpp" />
     <ClCompile Include="world\Quest.cpp" />
+    <ClCompile Include="world\RespawnThread.cpp" />
     <ClCompile Include="world\Room.cpp" />
     <ClCompile Include="world\Spells.cpp" />
     <ClCompile Include="world\World.cpp" />
@@ -44,6 +45,7 @@
     <ClInclude Include="world\CharacterUpdate.h" />
     <ClInclude Include="world\Items.h" />
     <ClInclude Include="world\Quest.h" />
+    <ClInclude Include="world\RespawnThread.h" />
     <ClInclude Include="world\Room.h" />
     <ClInclude Include="world\Spells.h" />
     <ClInclude Include="world\World.h" />

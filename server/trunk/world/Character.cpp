@@ -26,6 +26,7 @@ CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery 
    this->isNPC = false;
    
    this->timeofdeath = 0;
+   this->respawntime = 0;
 
    this->loadFromRecord(pQuery);
 }
@@ -56,13 +57,20 @@ void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
    this->currenthealthpool.set( rec.getValue(flds.getFieldIndex_ansi("hp"))->asInteger() );
 
    this->greeting.internalSetCopy( rec.getValue(flds.getFieldIndex_ansi("greeting"))->asString() );
+
+   this->respawntime = rec.getValue(flds.getFieldIndex_ansi("respawntime"))->asInteger();
+   if (!this->isNPC)  {
+      this->respawntime = 5;
+   }
 }
 
 void CCharacter::calculateStats() {
    // reset stats
-   this->currentstats.strength.set(0);
-   this->currentstats.energy.set(0);
-   this->currentstats.protection.set(0);
+   int lvl = this->level.get();
+
+   this->currentstats.strength.set(lvl);
+   this->currentstats.energy.set(lvl);
+   this->currentstats.protection.set(lvl);
 
    // load gear
    TGFString sql(
