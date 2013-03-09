@@ -344,10 +344,13 @@ void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CComba
          tctarget->inform_combatevent(source->WorldId, target->WorldId, COMBATEVENT_DEATH, 0, &combatmsg);
       }
 
+
+      // TODO: uitzoeken waarom dit voor problemen zorgt, is toch alleen Combat Chat Channel??
+      //this->leaveCombat(target);
+      //this->leaveCombat(source);
+
+      this->stop();
       if (target->WorldId != 0) {
-         this->leaveCombat(target);
-         //this->leaveCombat(source);
-         this->stop();
          
          Global_World()->handleDeath( reinterpret_cast<CCharacter *>(target), reinterpret_cast<CCharacter *>(source) );
       }

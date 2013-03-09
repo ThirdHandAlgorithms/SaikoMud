@@ -8,6 +8,8 @@
 #include <Groundfloor/Molecules/GFVector.h>
 #include <Groundfloor/Molecules/GFStringVector.h>
 
+#include <Groundfloor/Atoms/GFLockable.h>
+
 #include "Quest.h"
 #include "../combat/Combat.h"
 
@@ -21,11 +23,13 @@ protected:
 
    void calculateStats();
 
-   TGFVector bagslots;
+   TGFLockable baglock;
 
+   std::vector<unsigned long> bagslots;
    TGFVector actionslots;
 
    void loadBagslots();
+   void saveBagslots();
    void loadActionSlots();
 
    void loadFromRecord(TMySQLSquirrel *pQuery);
@@ -40,6 +44,7 @@ public:
    TGFLockableProperty<unsigned long> money;
    TGFLockableProperty<long> x;
    TGFLockableProperty<long> y;
+   TGFLockableProperty<unsigned int> maxbagslots;
 
    TGFStringProperty greeting;
 
@@ -50,6 +55,7 @@ public:
    void save();
 
    bool addToBags(unsigned long iItemId);
+   bool takeFromBags(unsigned long iItemId);
 
    // player specific functions
    bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
