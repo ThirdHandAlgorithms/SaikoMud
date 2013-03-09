@@ -123,14 +123,102 @@ void CCharacter::load() {
 }
 
 void CCharacter::loadBagslots() {
+   if (baglock.lockWhenAvailable()) {
+      bagslots.clear();
+
+      TGFString sql("select item_id from `bagslot` where char_id=:id");
+      TMySQLSquirrel qry(this->conn);
+      qry.setQuery(&sql);
+      qry.findOrAddParam("id")->setInteger(this->id);
+   
+      TSquirrelReturnData err;
+      if ( qry.open(&err) ) {
+         TGFBRecord *rec;
+         if ( qry.next() ) {
+            qry.fetchRecord(rec);
+         
+            bagslots.push_back( rec->getValue(0)->asInteger() );
+         }
+
+         qry.close();
+      } else {
+         printf("CCharacter::loadBagslots(): %s\n", err.errorstring.getValue());
+      }
+
+      baglock.unlock();
+   }
+}
+
+void CCharacter::saveBagslots() {
+   if (baglock.lockWhenAvailable()) {
+      bagslots.clear();
+
+
+      TGFString sql1("delete from bagslot where char_id=:char_id");
+      TMySQLSquirrel qry(this->conn);
+      qry.setQuery(&sql1);
+      qry.findOrAddParam("char_id")->setInteger(this->id);
+   
+      TSquirrelReturnData err;
+      if ( qry.open(&err) ) {
+         qry.close();
+      } else {
+         printf("CCharacter::loadBagslots() - delete: %s\n", err.errorstring.getValue());
+      }
+
+      TGFString sql2("insert into bagslot ( char_id, item_id) values (:char_id,:item_id)");
+
+      for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+         qry.setQuery(&sql2);
+         qry.findOrAddParam("char_id")->setInteger(this->id);
+         qry.findOrAddParam("item_id")->setInteger(*it);
+
+         if (qry.open(&err)) {
+            qry.close();
+         } else {
+            printf("CCharacter::loadBagslots() - insert: %s\n", err.errorstring.getValue());
+         }
+      }
+
+      baglock.unlock();
+   }
 }
 
 bool CCharacter::addToBags(unsigned long iItemId) {
-   printf("CCharacter::addToBags(%d) TODO", iItemId);
+   bool b = false;
 
+   if (baglock.lockWhenAvailable()) {
+      if (bagslots.size() < this->maxbagslots.get()) {
+         bagslots.push_back(iItemId);
+         b = true;
+      }
+
+      baglock.unlock();
+   }
 
    // returns false when bags are full
-   return false;
+   return b;
+}
+
+bool CCharacter::takeFromBags(unsigned long iItemId) {
+   bool b = false;   // return false when item is not in bags
+
+   if (baglock.lockWhenAvailable()) {
+
+      for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+          if (*it == iItemId) {
+             bagslots.erase(it);
+
+             b = true;
+
+             break;
+          }
+      }
+
+      baglock.unlock();
+   }
+
+   return b;
 }
 
 void CCharacter::loadActionSlots() {
@@ -155,6 +243,8 @@ void CCharacter::save() {
    } else {
       printf("CCharacter::save(): %s\n", err.errorstring.getValue());
    }
+
+   this->saveBagslots();
 }
 
 bool CCharacter::hasDoneQuest(long iQuestId) {

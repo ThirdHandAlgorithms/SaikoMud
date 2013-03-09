@@ -463,16 +463,24 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
 
    if (cFor->isNPC && !cKilledBy->isNPC) {
       CNPCharacter *npc = static_cast<CNPCharacter *>(cFor);
+      
+      // earn xp for killing npc
+      long earnedxp = npc->level.get() * 10;
+      cKilledBy->xp.lockedAdd(earnedxp);
 
+      // earn random item dropped by npc
       unsigned long drop_item_id = npc->getRandomItemDrop();
       if (drop_item_id != 0) {
          cKilledBy->addToBags(drop_item_id);
       }
 
+      // earn fixed quest items that are dropped by npc (if you have the quest)
       std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
       for (int i = 0; i < questdrops.size(); i++) {
          cKilledBy->addToBags(questdrops[i]);
       }
+
+      Global_CharacterUpdate()->schedule(cKilledBy);
    }
 
    // schedule teleportation to nearest spawnpoint
