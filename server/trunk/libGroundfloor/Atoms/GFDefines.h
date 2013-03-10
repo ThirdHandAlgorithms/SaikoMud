@@ -4,6 +4,7 @@
 
 
 #include <cstddef>
+#include <cstdint>
 
 #if defined(__linux) || defined(macintosh) || (defined(__MACH__) && defined(__APPLE__)) || defined(__FreeBSD__) || defined(__FreeBSD) || (defined (__SVR4) && defined (__sun))
    #define GF_OS_LINUX
@@ -107,3 +108,4 @@ const wchar_t S_WIDE_LINUX_SLASH[]  = L"/";
 #include "GFMemFuncs.h"
 
 #endif // __GFDEFINES_H
+

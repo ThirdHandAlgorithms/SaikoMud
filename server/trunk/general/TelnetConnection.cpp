@@ -34,8 +34,8 @@ bool CTelnetConnection::inBinaryMode() {
    return this->bBinaryMode;
 }
 
-void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intparam2, TGFString *s, DWORD32 intparam3, DWORD32 intparam4) {
-   DWORD32 strlen = 0;
+void CTelnetConnection::sendBin(uint32_t command, uint32_t intparam1, uint32_t intparam2, TGFString *s, uint32_t intparam3, uint32_t intparam4) {
+   uint32_t strlen = 0;
    if (s != NULL) {
       strlen = s->getLength();
    }
@@ -86,7 +86,7 @@ void CTelnetConnection::sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intp
    this->send(&tmp);
 }
 
-bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s, DWORD32 *intparam3, DWORD32 *intparam4) {
+bool CTelnetConnection::decodeNextBinMessageInBuffer(uint32_t *command, uint32_t *intparam1, uint32_t *intparam2, TGFString *s, uint32_t *intparam3, uint32_t *intparam4) {
    unsigned long iBufLen = buffer.getLength();
 
    if (iBufLen < 4) {
@@ -95,12 +95,12 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
 
    unsigned char *arrBuffer = reinterpret_cast<unsigned char *>( buffer.getValue() );
 
-   DWORD32 iCommand = 0;
+   uint32_t iCommand = 0;
 
-   iCommand |= static_cast<DWORD32>(arrBuffer[0]) << 24;
-   iCommand |= static_cast<DWORD32>(arrBuffer[1]) << 16;
-   iCommand |= static_cast<DWORD32>(arrBuffer[2]) << 8;
-   iCommand |= static_cast<DWORD32>(arrBuffer[3]);
+   iCommand |= static_cast<uint32_t>(arrBuffer[0]) << 24;
+   iCommand |= static_cast<uint32_t>(arrBuffer[1]) << 16;
+   iCommand |= static_cast<uint32_t>(arrBuffer[2]) << 8;
+   iCommand |= static_cast<uint32_t>(arrBuffer[3]);
 
    bool bIsStrCommand = ((iCommand & 0x10000000) > 0);
    bool bIntParamCommand = ((iCommand & 0x20000000) > 0);
@@ -137,22 +137,22 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
 
    unsigned long i = 4;
    if (bIntParamCommand) {
-      DWORD32 iIntParam1 = 0;
-      DWORD32 iIntParam2 = 0;
+      uint32_t iIntParam1 = 0;
+      uint32_t iIntParam2 = 0;
 
-      iIntParam1 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
-      iIntParam1 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
-      iIntParam1 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
-      iIntParam1 |= static_cast<DWORD32>(arrBuffer[i+3]);
+      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+3]);
 
       *intparam1 = iIntParam1;
 
       i += 4;
 
-      iIntParam2 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
-      iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
-      iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
-      iIntParam2 |= static_cast<DWORD32>(arrBuffer[i+3]);
+      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+3]);
 
       *intparam2 = iIntParam2;
 
@@ -160,35 +160,35 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *
    }
 
    if (bExtIntParamCommand) {
-      DWORD32 iIntParam3 = 0;
-      DWORD32 iIntParam4 = 0;
+      uint32_t iIntParam3 = 0;
+      uint32_t iIntParam4 = 0;
 
-      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
-      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
-      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
-      iIntParam3 |= static_cast<DWORD32>(arrBuffer[i+3]);
+      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+3]);
 
       *intparam3 = iIntParam3;
 
       i += 4;
 
-      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i]) << 24;
-      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
-      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
-      iIntParam4 |= static_cast<DWORD32>(arrBuffer[i+3]);
+      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+3]);
 
       *intparam4 = iIntParam4;
 
       i += 4;
    }
 
-   DWORD32 iStrLen = 0;
+   uint32_t iStrLen = 0;
    if (bIsStrCommand) {
 
-      iStrLen |= static_cast<DWORD32>(arrBuffer[i]) << 24;
-      iStrLen |= static_cast<DWORD32>(arrBuffer[i+1]) << 16;
-      iStrLen |= static_cast<DWORD32>(arrBuffer[i+2]) << 8;
-      iStrLen |= static_cast<DWORD32>(arrBuffer[i+3]);
+      iStrLen |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+      iStrLen |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+      iStrLen |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+      iStrLen |= static_cast<uint32_t>(arrBuffer[i+3]);
 
       i += 4;
 
@@ -223,7 +223,7 @@ void CTelnetConnection::inform_currentroom() {
 void CTelnetConnection::inform_lastaction() {
    TGFString tmp;
 
-   DWORD32 iWorldId = this->gameintf.GetLastActionInfo(&tmp);
+   uint32_t iWorldId = this->gameintf.GetLastActionInfo(&tmp);
 
    if (tmp.getLength() > 0) {
       if (!bBinaryMode) {
@@ -249,7 +249,7 @@ void CTelnetConnection::inform_map() {
    }
 }
 
-void CTelnetConnection::inform_questtitle(DWORD32 iQuestId, TGFString *s) {
+void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -262,7 +262,7 @@ void CTelnetConnection::inform_questtitle(DWORD32 iQuestId, TGFString *s) {
    }
 }
 
-void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s, long rewards_xp) {
+void CTelnetConnection::inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -284,7 +284,7 @@ void CTelnetConnection::inform_questtext(DWORD32 iQuestId, TGFString *s, long re
    }
 }
 
-void CTelnetConnection::inform_npcinfo(DWORD32 iWorldId, TGFString *s) {
+void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -297,7 +297,7 @@ void CTelnetConnection::inform_npcinfo(DWORD32 iWorldId, TGFString *s) {
    }
 }
 
-void CTelnetConnection::inform_npcdialog(DWORD32 iWorldId, TGFString *s) {
+void CTelnetConnection::inform_npcdialog(uint32_t iWorldId, TGFString *s) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -325,7 +325,7 @@ void CTelnetConnection::inform_earnxp(long xp, long totalxp) {
    }
 }
 
-void CTelnetConnection::inform_combatevent(DWORD32 iSourceWorldId, DWORD32 iTargetWorldId, int eventtype, int amount, TGFString *combatmsg) {
+void CTelnetConnection::inform_combatevent(uint32_t iSourceWorldId, uint32_t iTargetWorldId, int eventtype, int amount, TGFString *combatmsg) {
    TGFString tmp("");
 
    if (!bBinaryMode) {
@@ -438,8 +438,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
 
       } else {
 
-         DWORD32 command;
-         DWORD32 intparam1, intparam2, intparam3, intparam4;
+         uint32_t command;
+         uint32_t intparam1, intparam2, intparam3, intparam4;
          TGFString s;
 
          while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s, &intparam3, &intparam4) )  {

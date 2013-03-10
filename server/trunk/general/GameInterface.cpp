@@ -238,7 +238,7 @@ bool CGameInterface::run_teleport( long x, long y ) {
 	return false;
 }
 
-bool CGameInterface::attack_start(DWORD32 iWorldId) {
+bool CGameInterface::attack_start(uint32_t iWorldId) {
    this->DoChecks();
 
    CCharacter *cTarget = Global_World()->getCharacter(iWorldId);
@@ -267,7 +267,7 @@ bool CGameInterface::attack_start(DWORD32 iWorldId) {
    return false;
 }
 
-bool CGameInterface::interact_greet(DWORD32 iCharId, TGFString *sGreeting) {
+bool CGameInterface::interact_greet(uint32_t iCharId, TGFString *sGreeting) {
    this->DoChecks();
 
    CCharacter *cTarget = Global_World()->getCharacter(iCharId);
@@ -284,7 +284,7 @@ bool CGameInterface::interact_greet(DWORD32 iCharId, TGFString *sGreeting) {
    return false;
 }
 
-int CGameInterface::interact_getQuests(DWORD32 iCharId, TGFVector *v) {
+int CGameInterface::interact_getQuests(uint32_t iCharId, TGFVector *v) {
    this->DoChecks();
 
    CCharacter *cTarget = Global_World()->getCharacter(iCharId);
@@ -305,7 +305,7 @@ int CGameInterface::interact_getQuests(DWORD32 iCharId, TGFVector *v) {
    return 0;
 }
 
-bool CGameInterface::interact_getQuestText(DWORD32 iQuestId, TGFString *s, long *rewards_xp) {
+bool CGameInterface::interact_getQuestText(uint32_t iQuestId, TGFString *s, long *rewards_xp) {
    this->DoChecks();
 
    return Global_World()->getQuestStory(iQuestId, this->loggedInCharacter, s, rewards_xp);
