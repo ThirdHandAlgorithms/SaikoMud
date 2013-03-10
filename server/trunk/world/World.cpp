@@ -299,7 +299,7 @@ uint32_t CWorld::generateUniqueWorldId(CCharacter *c) {
    worldidlock.lock();
    try  {
 
-      r = (rand() % 0xffff) + ((uint32_t)c % 0x0fff) + 1;
+      r = (rand() % 0xffff) + 1;
 
       TGFFreeable *obj = NULL;
 

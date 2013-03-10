@@ -2,6 +2,17 @@
 
 #include "../Globals.h"
 
+#include <math.h>
+
+#ifndef min
+   #define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef max
+   #define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
+
 CCombatant::CCombatant() : TGFFreeable() {
    combattimer = NULL;
    swingslices = 0;
