@@ -66,8 +66,8 @@ public:
 
    CNPCharacter *getNpcByName(TGFString *s);
 
-   CCharacter *getCharacter(DWORD32 id);
-   CQuest *getQuest(DWORD32 id);
+   CCharacter *getCharacter(uint32_t id);
+   CQuest *getQuest(uint32_t id);
 
    bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp);
    bool getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting);
@@ -77,7 +77,7 @@ public:
 
    void echoAsciiMap( TGFString *s, long x, long y, unsigned int radius );
 
-   DWORD32 generateUniqueWorldId(CCharacter *c);
+   uint32_t generateUniqueWorldId(CCharacter *c);
    void unloadCharacter(CCharacter *c);
 
    void informAboutAllStats(CCharacter *cFor, CCharacter *cAbout);

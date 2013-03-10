@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Groundfloor\Materials\GFThread.h>
-#include <Groundfloor\Molecules\GFVector.h>
+#include <Groundfloor/Materials/GFThread.h>
+#include <Groundfloor/Molecules/GFVector.h>
 #include "Character.h"
 
 class CRespawnThread: public TGFThread {

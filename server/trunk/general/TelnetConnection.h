@@ -71,14 +71,14 @@ protected:
 
    void inform_currentroom();
    void inform_lastaction();
-   void inform_questtitle(DWORD32 iQuestId, TGFString *s);
-   void inform_questtext(DWORD32 iQuestId, TGFString *s, long rewards_xp);
-   void inform_npcinfo(DWORD32 iWorldId, TGFString *s);
-   void inform_npcdialog(DWORD32 iWorldId, TGFString *s);
+   void inform_questtitle(uint32_t iQuestId, TGFString *s);
+   void inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp);
+   void inform_npcinfo(uint32_t iWorldId, TGFString *s);
+   void inform_npcdialog(uint32_t iWorldId, TGFString *s);
 
    //void inform_currentplayerstats();
 
-   bool decodeNextBinMessageInBuffer(DWORD32 *command, DWORD32 *intparam1, DWORD32 *intparam2, TGFString *s, DWORD32 *intparam3, DWORD32 *intparam4);
+   bool decodeNextBinMessageInBuffer(uint32_t *command, uint32_t *intparam1, uint32_t *intparam2, TGFString *s, uint32_t *intparam3, uint32_t *intparam4);
 public:
    CTelnetConnection( TJRBaseSocket *aSocket );
    ~CTelnetConnection();
@@ -88,14 +88,14 @@ public:
    void newMessageReceived( const TGFString *sMessage );
 
    void send( const TGFString *s );
-   void sendBin(DWORD32 command, DWORD32 intparam1, DWORD32 intparam2, TGFString *s, DWORD32 intparam3 = 0, DWORD32 intparam4 = 0);
+   void sendBin(uint32_t command, uint32_t intparam1, uint32_t intparam2, TGFString *s, uint32_t intparam3 = 0, uint32_t intparam4 = 0);
 
    bool matchWithCharacterRef( void *ref );
 
    void append_nickname(TGFString *s);
 
    void inform_earnxp(long xp, long totalxp);
-   void inform_combatevent(DWORD32 iSourceWorldId, DWORD32 iTargetWorldId, int eventtype, int amount, TGFString *combatmsg);
+   void inform_combatevent(uint32_t iSourceWorldId, uint32_t iTargetWorldId, int eventtype, int amount, TGFString *combatmsg);
    void informAboutAllStats(CCharacter *cAbout);
 
    void inform_map();

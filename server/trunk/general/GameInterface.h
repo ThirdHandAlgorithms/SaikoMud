@@ -37,7 +37,7 @@ public:
    void ReloadWorld();
    void GetTinyMap(TGFString *s);
 
-   DWORD32 GetLastActionInfo(TGFString *s);
+   uint32_t GetLastActionInfo(TGFString *s);
    BYTE GetRoomInfo(TGFString *s);
 
    // character actions
@@ -46,16 +46,16 @@ public:
    bool run_walkleft();
    bool run_walkright();
 
-   bool attack_start(DWORD32 iWorldId);
+   bool attack_start(uint32_t iWorldId);
    //bool attack_stop();
    // ...
 
    int radar_getNearbyNpcs(TGFVector *v);
    int radar_getNearbyPlayers(TGFVector *v);
 
-   bool interact_greet(DWORD32 iCharId, TGFString *sGreeting);
-   int interact_getQuests(DWORD32 iCharId, TGFVector *v);
-   bool interact_getQuestText(DWORD32 iQuestId, TGFString *s, long *rewards_xp);
+   bool interact_greet(uint32_t iCharId, TGFString *sGreeting);
+   int interact_getQuests(uint32_t iCharId, TGFVector *v);
+   bool interact_getQuestText(uint32_t iQuestId, TGFString *s, long *rewards_xp);
 
    bool inform_SelfAboutAllStats();
 

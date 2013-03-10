@@ -15,7 +15,7 @@ protected:
    TGFVector clients;
    TGFFifoVector msgqueue;
 
-   DWORD32 channelnr;
+   uint32_t channelnr;
 
 public:
    CChatChannel();

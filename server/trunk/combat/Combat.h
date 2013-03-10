@@ -2,6 +2,8 @@
 #ifndef __COMBAT_H__
 #define __COMBAT_H__
 
+#include <cstdint>
+
 #include <Groundfloor/Atoms/GFFreeable.h>
 #include <Groundfloor/Atoms/GFLockable.h>
 #include <Groundfloor/Molecules/GFVector.h>
@@ -54,7 +56,7 @@ protected:
 
    virtual void calculateStats();
 public:
-   DWORD32 WorldId;
+   uint32_t WorldId;
 
    TGFStringProperty name;
    TGFProperty<unsigned int> level;

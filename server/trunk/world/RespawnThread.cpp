@@ -1,7 +1,7 @@
 #include "RespawnThread.h"
 
-#include <Groundfloor\Materials\GFFunctions.h>
-#include "..\Globals.h"
+#include <Groundfloor/Materials/GFFunctions.h>
+#include "../Globals.h"
 
 CRespawnThread::CRespawnThread() : TGFThread() {
    cursor = 0;

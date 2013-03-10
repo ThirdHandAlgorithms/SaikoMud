@@ -289,17 +289,17 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
    }
 }
 
-CCharacter *CWorld::getCharacter(DWORD32 id) {
+CCharacter *CWorld::getCharacter(uint32_t id) {
    return static_cast<CCharacter *>(worldids.elementAt(id));
 }
 
-DWORD32 CWorld::generateUniqueWorldId(CCharacter *c) {
-   DWORD32 r;
+uint32_t CWorld::generateUniqueWorldId(CCharacter *c) {
+   uint32_t r;
 
    worldidlock.lock();
    try  {
 
-      r = (rand() % 0xffff) + ((DWORD32)c % 0x0fff) + 1;
+      r = (rand() % 0xffff) + ((uint32_t)c % 0x0fff) + 1;
 
       TGFFreeable *obj = NULL;
 
@@ -344,7 +344,7 @@ void CWorld::unloadCharacter(CCharacter *c) {
    }
 }
 
-CQuest *CWorld::getQuest(DWORD32 id) {
+CQuest *CWorld::getQuest(uint32_t id) {
    return static_cast<CQuest *>( this->quests.elementAt(id) );
 }
 
