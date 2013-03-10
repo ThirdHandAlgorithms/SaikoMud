@@ -132,7 +132,7 @@ BYTE CGameInterface::GetRoomInfo(TGFString *s) {
    return envtype;
 }
 
-DWORD32 CGameInterface::GetLastActionInfo(TGFString *s) {
+uint32_t CGameInterface::GetLastActionInfo(TGFString *s) {
    s->setValue(&sLastactionInfo);
 
    if (this->loggedInCharacter != NULL) {

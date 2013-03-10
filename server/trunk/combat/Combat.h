@@ -2,7 +2,7 @@
 #ifndef __COMBAT_H__
 #define __COMBAT_H__
 
-#include <cstdint>
+#include <stdint.h>
 
 #include <Groundfloor/Atoms/GFFreeable.h>
 #include <Groundfloor/Atoms/GFLockable.h>
