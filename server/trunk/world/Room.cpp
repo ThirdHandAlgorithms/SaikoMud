@@ -1,8 +1,8 @@
 
 #include "Room.h"
-#include "../world/character.h"
+#include "../world/Character.h"
 
-#include <MysqlBooks/MySQLSquirrel.h>
+#include <MySQLBooks/MySQLSquirrel.h>
 
 CRoom::CRoom() : TGFFreeable() {
 }
