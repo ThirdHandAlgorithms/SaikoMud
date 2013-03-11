@@ -21,7 +21,9 @@ CChatChannel::~CChatChannel() {
 }
 
 void CChatChannel::addClient( CTelnetConnection *pClient ) {
-   this->clients.addElement( pClient );
+   if (this->clients.findElement(pClient) == -1) {
+      this->clients.addElement( pClient );
+   }
 }
 
 void CChatChannel::delClient( CTelnetConnection *pClient ) {

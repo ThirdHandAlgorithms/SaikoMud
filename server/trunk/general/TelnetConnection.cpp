@@ -442,7 +442,10 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
          uint32_t intparam1, intparam2, intparam3, intparam4;
          TGFString s;
 
+         printf("start decodeNextBinMessageInBuffer\n");
          while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s, &intparam3, &intparam4) )  {
+            printf("decodeNextBinMessageInBuffer -> %08x\n", command);
+
             bool bMovementActionOk = false;
 
             if (command == c_run_walkbackwards) {

@@ -8,7 +8,7 @@ using System.Net.Sockets;
 
 namespace GameClient {
     class GameNet {
-        private string host = "127.0.0.1";
+        private string host = "www.saikosoft.net";
         private int port = 23;
 
         private TcpClient clientsock;
@@ -395,6 +395,7 @@ namespace GameClient {
 
             } catch (ArgumentNullException e) {
             } catch (SocketException e) {
+                throw new Exception(e.Message);
             }
         }
 

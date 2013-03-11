@@ -236,10 +236,13 @@ void CCombat::execute() {
    if ( alive <= 1 ) {
       this->stop();
 
+      printf("stopping combat\n");
+
       unsigned int c = combatants.size();
       for ( unsigned int i = 0; i < c; i++ ) {
          CCombatant *obj = static_cast<CCombatant *>( combatants.elementAt(i) );
          if ( obj != NULL ) {
+            printf("char %s leaving combat\n", obj->name.get());
             this->leaveCombat(obj);
          }
       }
@@ -356,13 +359,7 @@ void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CComba
       }
 
 
-      // TODO: uitzoeken waarom dit voor problemen zorgt, is toch alleen Combat Chat Channel??
-      //this->leaveCombat(target);
-      //this->leaveCombat(source);
-
-      this->stop();
       if (target->WorldId != 0) {
-         
          Global_World()->handleDeath( reinterpret_cast<CCharacter *>(target), reinterpret_cast<CCharacter *>(source) );
       }
    }
