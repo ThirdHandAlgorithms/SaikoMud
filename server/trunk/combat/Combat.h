@@ -79,7 +79,7 @@ public:
    int affectWithDamage( int combatevent, int amount );
    int affectWithHealing( int combatevent, int amount );
 
-   void enterCombat( CCombat *c );
+   void enterCombat( CCombat *c, bool bOffsetHalf = false);
    void leaveCombat();
 
    CBaseCombatStats *getCurrentStats();
@@ -95,7 +95,7 @@ public:
    CCombat();
    ~CCombat();
 
-   void joinCombat( CCombatant *c );
+   void joinCombat( CCombatant *c, bool bOffsetHalf = false );
    bool isPartOfCombat( CCombatant *c );
    void leaveCombat( CCombatant *c );
 

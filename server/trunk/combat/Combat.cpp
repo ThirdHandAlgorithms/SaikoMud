@@ -12,6 +12,7 @@
    #define max(a,b)            (((a) > (b)) ? (a) : (b))
 #endif
 
+#include <Groundfloor/Materials/GFFunctions.h>
 
 CCombatant::CCombatant() : TGFFreeable() {
    combattimer = NULL;
@@ -45,8 +46,12 @@ void CCombatant::resetCooldown() {
    cooldownslices = 0;
 }
 
-void CCombatant::enterCombat(CCombat *c) {
+void CCombatant::enterCombat(CCombat *c, bool bOffsetHalf) {
    this->combat = c;
+
+   if (bOffsetHalf) {
+      swingslices = (autoattackswingtime / 2) * -1;
+   }
 
    combattimer = new TGFTimer();
    combattimer->setInterval(100);
@@ -70,8 +75,13 @@ void CCombatant::setLevel( unsigned int l ) {
 
 void CCombatant::onTimer( TGFFreeable *obj ) {
    if ( sliceslock.lockWhenAvailable() ) {
-      cooldownslices += 100;
-      swingslices += 100;
+      long slice = 100;
+      cooldownslices += slice;
+      swingslices += slice;
+
+      if (swingslices == 0) {
+         swingslices = 1;
+      }
 
       sliceslock.unlock();
    }
@@ -249,7 +259,7 @@ void CCombat::execute() {
    }
 }
 
-void CCombat::joinCombat( CCombatant *c ) {
+void CCombat::joinCombat( CCombatant *c, bool bOffsetHalf ) {
    if ( combatants.findElement(c) == -1 ) {
       combatants.insertSomewhere( c );
 
@@ -258,7 +268,7 @@ void CCombat::joinCombat( CCombatant *c ) {
          reinterpret_cast<CChatChannel *>(combatlog)->addClient(hook);
       }
 
-      c->enterCombat(this);
+      c->enterCombat(this, bOffsetHalf);
    }
 }
 

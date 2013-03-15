@@ -254,7 +254,7 @@ bool CGameInterface::attack_start(uint32_t iWorldId) {
 
          // target targets and hits back in return
          cTarget->setTarget(this->loggedInCharacter);
-         combat->joinCombat(cTarget);
+         combat->joinCombat(cTarget, true);
 
          combat->start();
 

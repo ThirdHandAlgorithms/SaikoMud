@@ -13,6 +13,8 @@
 CWorld::CWorld() : TGFFreeable() {
    worldids.autoClear = false;
    worldids.resizeVector(1024);
+
+   itemcache.autoClear = true;
 }
 
 CWorld::~CWorld() {
@@ -293,6 +295,24 @@ CCharacter *CWorld::getCharacter(uint32_t id) {
    return static_cast<CCharacter *>(worldids.elementAt(id));
 }
 
+CItem *CWorld::getItem(uint32_t id) {
+   // todo: what to do when item id exceeds 32bits uint
+   CItem *item = static_cast<CItem *>(itemcache.elementAt(id));
+
+   if (item == NULL) {
+      item = new CItem();
+      item->loadFromDb(this->conn, id);
+
+      if (itemcache.size() < id) {
+         itemcache.resizeVector(id+1);
+         itemcache.setElementCount(id+1);
+      }
+      worldids.replaceElement(id, item);
+   }
+
+   return item;
+}
+
 uint32_t CWorld::generateUniqueWorldId(CCharacter *c) {
    uint32_t r;
 
@@ -464,6 +484,8 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
    if (cFor->isNPC && !cKilledBy->isNPC) {
       CNPCharacter *npc = static_cast<CNPCharacter *>(cFor);
       
+      bool bNotEnoughBagspace = false;
+
       // earn xp for killing npc
       long earnedxp = npc->level.get() * 10;
       cKilledBy->xp.lockedAdd(earnedxp);
@@ -471,19 +493,32 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       // earn random item dropped by npc
       unsigned long drop_item_id = npc->getRandomItemDrop();
       if (drop_item_id != 0) {
-         cKilledBy->addToBags(drop_item_id);
+         if (!cKilledBy->addToBags(drop_item_id)) {
+            bNotEnoughBagspace = true;
+         }
       }
 
       // earn fixed quest items that are dropped by npc (if you have the quest)
       std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
       for (int i = 0; i < questdrops.size(); i++) {
-         cKilledBy->addToBags(questdrops[i]);
+         if ( !cKilledBy->addToBags(questdrops[i]) ) {
+            bNotEnoughBagspace = true;
+         }
       }
 
       Global_CharacterUpdate()->schedule(cKilledBy);
+
+      if (bNotEnoughBagspace) {
+         printf("TODO: Not enough bagspace\n");
+
+         tc = Global_Server()->getClientFromPool(cKilledBy);
+         if (tc != NULL) {
+            // ...
+         }
+      }
    }
 
-   // schedule teleportation to nearest spawnpoint
+   // schedule respawn
    cFor->timeofdeath = GFGetTimestamp();
    Global_RespawnThread()->add(cFor);
 }
