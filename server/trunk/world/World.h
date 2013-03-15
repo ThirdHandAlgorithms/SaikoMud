@@ -11,6 +11,7 @@
 #include "../combat/Combat.h"
 #include "Character.h"
 #include "Quest.h"
+#include "Items.h"
 
 class CWorld: TGFFreeable {
 protected:
@@ -34,6 +35,7 @@ protected:
 
    TGFVector characters;
    TGFVector npcs;
+   TGFVector itemcache;
 
    // pointerlinks to characters and npcs with (hopefully) non-retraceable id's to the database id's - no-auto-free
    TGFVector worldids;
@@ -68,6 +70,8 @@ public:
 
    CCharacter *getCharacter(uint32_t id);
    CQuest *getQuest(uint32_t id);
+
+   CItem *getItem(uint32_t id);
 
    bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp);
    bool getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting);

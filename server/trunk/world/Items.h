@@ -5,6 +5,8 @@
 #include <Groundfloor/Atoms/GFFreeable.h>
 #include <Groundfloor/Molecules/GFString.h>
 
+#include <MySQLBooks/MySQLSquirrel.h>
+
 class CItem: public TGFFreeable {
 public:
    unsigned long id;
@@ -16,6 +18,8 @@ public:
    TGFString description;
    unsigned int use_spell_id;
    unsigned int equip_spell_id;
+
+   bool loadFromDb(TMySQLSquirrelConnection *pConn, unsigned long id);
 };
 
 class CDropPoolItem: public TGFFreeable {

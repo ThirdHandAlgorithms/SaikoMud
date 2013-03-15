@@ -50,6 +50,7 @@
 
 //#define c_response_completedquest 0x3015000
 
+#define c_response_iteminfo 0x70200000
 
 /*
 #define c_response_ 0x10100000

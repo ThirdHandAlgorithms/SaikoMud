@@ -1,6 +1,6 @@
 
 #include "Character.h"
-#include "../world/quest.h"
+#include "../world/Quest.h"
 
 #include "../world/Items.h"
 
@@ -62,6 +62,8 @@ void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
    if (!this->isNPC)  {
       this->respawntime = 5;
    }
+
+   this->maxbagslots.set( rec.getValue(flds.getFieldIndex_ansi("maxbagslots"))->asInteger() );
 }
 
 void CCharacter::calculateStats() {
@@ -133,11 +135,11 @@ void CCharacter::loadBagslots() {
    
       TSquirrelReturnData err;
       if ( qry.open(&err) ) {
-         TGFBRecord *rec;
+         TGFBRecord rec;
          if ( qry.next() ) {
-            qry.fetchRecord(rec);
+            qry.fetchRecord(&rec);
          
-            bagslots.push_back( rec->getValue(0)->asInteger() );
+            bagslots.push_back( rec.getValue(0)->asInteger() );
          }
 
          qry.close();
@@ -151,9 +153,6 @@ void CCharacter::loadBagslots() {
 
 void CCharacter::saveBagslots() {
    if (baglock.lockWhenAvailable()) {
-      bagslots.clear();
-
-
       TGFString sql1("delete from bagslot where char_id=:char_id");
       TMySQLSquirrel qry(this->conn);
       qry.setQuery(&sql1);
