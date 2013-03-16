@@ -27,6 +27,7 @@
 #define c_self_getallstats 0x00000201
 
 #define c_info_getiteminfo 0x20000301
+#define c_info_getitemstats 0x20000302
 
 #define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
@@ -52,7 +53,8 @@
 
 //#define c_response_completedquest 0x3015000
 
-#define c_response_iteminfo 0x70200000
+#define c_response_iteminfo 0x70300001
+#define c_response_itemstats 0x70300002
 
 /*
 #define c_response_ 0x10100000
@@ -79,6 +81,7 @@ protected:
    void inform_npcinfo(uint32_t iWorldId, TGFString *s);
    void inform_npcdialog(uint32_t iWorldId, TGFString *s);
    bool inform_iteminfo(uint32_t iItemId);
+   bool inform_itemstats(uint32_t iItemId);
 
    //void inform_currentplayerstats();
 

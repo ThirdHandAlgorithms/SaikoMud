@@ -264,8 +264,34 @@ bool CTelnetConnection::inform_iteminfo(uint32_t iItemId) {
       } else {
          this->sendBin(c_response_iteminfo, item->id, 0, &tmp, item->type, item->charslot_id);
       }
+
+      if (item->equipable) {
+         // if item is equipable, then it's very likely the client wants to know the stats that are on the item
+         this->inform_itemstats(iItemId);
+      }
    } else {
       // todo: item doesn't exist, give the client a hard time about things he shouldn't be doing...
+      return false;
+   }
+
+   return true;
+}
+
+bool CTelnetConnection::inform_itemstats(uint32_t iItemId) {
+   CBaseCombatStats *stats = Global_World()->getItemStats(iItemId);
+   if (stats != NULL) {
+      TGFString tmp("");
+
+      if (!bBinaryMode) {
+         if (tmp.getLength() > 0) {
+            tmp.append_ansi("\r\n");
+            this->send(&tmp);
+         }
+      } else {
+         this->sendBin(c_response_itemstats, iItemId, stats->strength.get(), &tmp, stats->energy.get(), stats->protection.get());
+      }
+   } else {
+      // todo: item/stats don't exist, give the client a hard time about things he shouldn't be doing...
       return false;
    }
 
@@ -539,6 +565,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->gameintf.inform_SelfAboutAllStats();
             } else if (command == c_info_getiteminfo) {
                bActionOk = this->inform_iteminfo(intparam1);
+            } else if (command == c_info_getitemstats) {
+               bActionOk = this->inform_itemstats(intparam1);
             }
 
             this->inform_lastaction();

@@ -36,6 +36,7 @@ namespace GameClient {
         public event GameNetCallback statsinfo;
         public event GameNetExtCallback combatmsg;
         public event GameNetExtCallback iteminfo;
+        public event GameNetExtCallback itemstats;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -83,7 +84,8 @@ namespace GameClient {
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
 
-        public const UInt32 c_response_iteminfo = 0x70200000;
+        public const UInt32 c_response_iteminfo = 0x70300001;
+        public const UInt32 c_response_itemstats = 0x70300002;
 
         public const UInt32 COMBATEVENT_MISS = 1;
         public const UInt32 COMBATEVENT_HIT = 2;
@@ -216,6 +218,8 @@ namespace GameClient {
                     statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_response_iteminfo) {
                     iteminfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
+                } else if (command == c_response_itemstats) {
+                    itemstats.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 }
                 
             } catch {
