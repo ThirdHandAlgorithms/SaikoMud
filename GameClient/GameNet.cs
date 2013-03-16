@@ -8,7 +8,7 @@ using System.Net.Sockets;
 
 namespace GameClient {
     class GameNet {
-        private string host = "www.saikosoft.net";
+        private string host = "127.0.0.1";//"www.saikosoft.net";
         private int port = 23;
 
         private TcpClient clientsock;
@@ -35,6 +35,7 @@ namespace GameClient {
         public event GameNetCallback earnsxp;
         public event GameNetCallback statsinfo;
         public event GameNetExtCallback combatmsg;
+        public event GameNetExtCallback iteminfo;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -55,6 +56,8 @@ namespace GameClient {
         public const UInt32 c_radar_getnearbyplayers = 0x00000102;
 
         public const UInt32 c_self_getallstats = 0x00000201;
+
+        public const UInt32 c_info_getiteminfo = 0x20000301;
 
         // responses
         public const UInt32 c_response_lastactioninfo = 0x30010000;
@@ -79,6 +82,8 @@ namespace GameClient {
 
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
+
+        public const UInt32 c_response_iteminfo = 0x70200000;
 
         public const UInt32 COMBATEVENT_MISS = 1;
         public const UInt32 COMBATEVENT_HIT = 2;
@@ -209,6 +214,8 @@ namespace GameClient {
                     statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_event_statinfo_protection) {
                     statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                } else if (command == c_response_iteminfo) {
+                    iteminfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 }
                 
             } catch {

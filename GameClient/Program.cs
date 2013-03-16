@@ -8,6 +8,7 @@ using SdlDotNet.Graphics.Primitives;
 using SdlDotNet.Graphics.Sprites;
 using SdlDotNet.Core;
 using SdlDotNet.Input;
+using SdlDotNet.Audio;
 using System.Drawing;
 using System.Diagnostics;
 
@@ -37,6 +38,14 @@ namespace GameClient {
         public UInt32 protection = 0;
     };
 
+    class CItem {
+        public UInt64 Id = 0;
+        public String Name = "";
+        public String Description = "";
+        public UInt32 Type = 0;
+        public UInt32 Slot = 0;
+    };
+
     class Program {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
@@ -49,6 +58,8 @@ namespace GameClient {
         private Surface m_npcDialogBox;
         private Surface m_spriteNpcs;
         private Surface m_DeathScreen;
+        private Surface m_TooltipBox;
+        private Music m_level_music;
 
         private Rectangle MapArea = new Rectangle();
         private Rectangle ActionInfoArea = new Rectangle();
@@ -65,6 +76,8 @@ namespace GameClient {
 
         private Rectangle DeathMessageArea = new Rectangle();
 
+        private Point ToolTipLocation = new Point();
+
         private Point LastHeroPos = new Point();
         private Point NewHeroPos = new Point();
 
@@ -80,6 +93,7 @@ namespace GameClient {
         private byte RoomEnvType = 0;
 
         private CCharSelf CharSelf = new CCharSelf();
+        private CItem LatestItem = new CItem();
 
         private List<CQuest> QuestsAvailable = new List<CQuest>();
         private List<CNPC> NPCsAvailable = new List<CNPC>();
@@ -96,6 +110,7 @@ namespace GameClient {
         private SdlDotNet.Graphics.Font font_roominfo;
         private SdlDotNet.Graphics.Font font_questtext;
         private SdlDotNet.Graphics.Font font_questtexttitle;
+        private SdlDotNet.Graphics.Font font_iteminfo;
 
         private String LastEventStr = "";
         private DateTime LastEventTime = DateTime.Now;
@@ -130,6 +145,8 @@ namespace GameClient {
 
             font_questtexttitle = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 16);
             font_questtext = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 14);
+
+            font_iteminfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 14);
 
             ActionInfoArea.X = 0;
             ActionInfoArea.Y = 0;
@@ -192,10 +209,12 @@ namespace GameClient {
             net.statsinfo += OnStatsInfo;
 
             net.combatmsg += OnCombatEvent;
+            net.iteminfo += OnItemInfo;
 
             net.Connect();
 
             LoadResources();
+
 
             Events.Fps = 60;
             Events.Tick += new EventHandler<TickEventArgs>(Events_Tick);
@@ -204,6 +223,9 @@ namespace GameClient {
             Events.KeyboardUp += new EventHandler<KeyboardEventArgs>(Events_KeyboardUp);
 
             Events.Run();
+
+            
+            m_level_music.Play(1);
         }
 
         public void OnActionInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -226,6 +248,21 @@ namespace GameClient {
             //frmDebug.addMessage(str + crlf);
 
             arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
+        }
+
+        public void OnItemInfo(UInt32 command, UInt32 itemid, UInt32 reserved, String sItemNameAndDescription, UInt32 iType, UInt32 iSlot) {
+            // sItemNameAndDescription separated by |
+
+            var arr = sItemNameAndDescription.Split('|');
+            if (arr.Length == 2) {
+                LatestItem.Id = itemid;
+                LatestItem.Name = arr[0];
+                LatestItem.Description = arr[1];
+                LatestItem.Type = iType;
+                LatestItem.Slot = iSlot;
+            } else {
+                LatestItem.Id = 0;
+            }
         }
 
         public void OnRoomInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -450,11 +487,12 @@ namespace GameClient {
             m_npcDialogBox = new Surface(@"..\..\Data\npc_dialog.png");
             m_npcDialogBox.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            var m_level_music = new SdlDotNet.Audio.Music(@"..\..\Data\intro_test.mp3");
-            m_level_music.Play(1);
-
+            m_level_music = new SdlDotNet.Audio.Music(@"..\..\Data\intro_test.mp3");
             m_DeathScreen = new Surface(@"..\..\Data\deathscreen.png");
             m_DeathScreen.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_TooltipBox = new Surface(@"..\..\Data\tooltip.png");
+            m_TooltipBox.SourceColorKey = Color.FromArgb(255, 0, 255);
         }
 
         private void LoadTextures() {
@@ -606,6 +644,17 @@ namespace GameClient {
             Video.Screen.Blit(m_XPVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
+            Rectangle bararea = new Rectangle();
+            bararea.X = StatsTextArea.X - 2;
+            bararea.Y = StatsTextArea.Y + 2;
+
+            Surface hpbar = new Surface(102, 21);
+            hpbar.Transparent = true;
+            hpbar.TransparentColor = Color.Black;
+            Box b = new Box(1, 1, (short)(CharSelf.hp), 19);
+            b.Draw(hpbar, Color.Red, true, true);
+
+            Video.Screen.Blit(hpbar, bararea);
             Video.Screen.Blit(m_HealthVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
@@ -616,6 +665,40 @@ namespace GameClient {
 
             StatsTextArea.Y += 25;
             Video.Screen.Blit(m_ProtectionVal, StatsTextArea);
+        }
+
+        private void RenderItemTooltip() {
+            if (LatestItem.Id != 0) {
+                ToolTipLocation.X = 100;
+                ToolTipLocation.Y = 100;
+
+                Video.Screen.Blit(m_TooltipBox, ToolTipLocation);
+
+                Rectangle r = new Rectangle(ToolTipLocation, new Size(m_TooltipBox.Width, m_TooltipBox.Height));
+
+                r.X += 10;
+                r.Y += 10;
+                Surface title = font_iteminfo.Render(LatestItem.Name, Color.Black);
+                Video.Screen.Blit(title, r);
+
+                r.Y += 50;
+                Surface description = font_iteminfo.Render(LatestItem.Description, Color.Black);
+                Video.Screen.Blit(description, r);
+
+                String slottext = "";
+                switch (LatestItem.Slot) {
+                    case 1: slottext = "headpiece"; break;
+                    case 2: slottext = "bodyarmor"; break;
+                    case 3: slottext = "shoes"; break;
+                    case 4: slottext = "gloves"; break;
+                    case 5: slottext = "weapon"; break;
+                }
+                Surface m_slottext = font_iteminfo.Render("Equipable as: " + slottext, Color.Black);
+                r.Y += 100;
+                Video.Screen.Blit(m_slottext, r);
+
+
+            }
         }
 
         private void RenderHero() {
@@ -779,6 +862,7 @@ namespace GameClient {
                 RenderActionInfo();
                 RenderRoomInfo();
                 RenderNPCDialog();
+                RenderItemTooltip();
 
                 if (CharSelf.hp == 0) {
                     RenderDeath();
@@ -857,6 +941,12 @@ namespace GameClient {
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
 
+                    break;
+                case Key.Keypad1:
+                    net.SendBinToServer(GameNet.c_info_getiteminfo, 1, 0, "");
+                    break;
+                case Key.Keypad2:
+                    net.SendBinToServer(GameNet.c_info_getiteminfo, 2, 0, "");
                     break;
                 case Key.Q:
                     Events.QuitApplication();

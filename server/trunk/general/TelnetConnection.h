@@ -26,6 +26,8 @@
 
 #define c_self_getallstats 0x00000201
 
+#define c_info_getiteminfo 0x20000301
+
 #define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
@@ -76,6 +78,7 @@ protected:
    void inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp);
    void inform_npcinfo(uint32_t iWorldId, TGFString *s);
    void inform_npcdialog(uint32_t iWorldId, TGFString *s);
+   bool inform_iteminfo(uint32_t iItemId);
 
    //void inform_currentplayerstats();
 

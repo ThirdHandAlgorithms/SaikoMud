@@ -123,6 +123,7 @@
     <Content Include="Data\puppet.png" />
     <Content Include="Data\statsandslots.png" />
     <Content Include="Data\textures.png" />
+    <Content Include="Data\tooltip.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
