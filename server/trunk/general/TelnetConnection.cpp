@@ -249,6 +249,29 @@ void CTelnetConnection::inform_map() {
    }
 }
 
+bool CTelnetConnection::inform_iteminfo(uint32_t iItemId) {
+   CItem *item = Global_World()->getItem(iItemId);
+   if (item != NULL) {
+      TGFString tmp(&item->name);
+      tmp.append_ansi("|");
+      tmp.append(&(item->description));
+
+      if (!bBinaryMode) {
+         if (tmp.getLength() > 0) {
+            tmp.append_ansi("\r\n");
+            this->send(&tmp);
+         }
+      } else {
+         this->sendBin(c_response_iteminfo, item->id, 0, &tmp, item->type, item->charslot_id);
+      }
+   } else {
+      // todo: item doesn't exist, give the client a hard time about things he shouldn't be doing...
+      return false;
+   }
+
+   return true;
+}
+
 void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s) {
    TGFString tmp(s);
 
@@ -514,6 +537,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                }
             } else if (command == c_self_getallstats) {
                bActionOk = this->gameintf.inform_SelfAboutAllStats();
+            } else if (command == c_info_getiteminfo) {
+               bActionOk = this->inform_iteminfo(intparam1);
             }
 
             this->inform_lastaction();

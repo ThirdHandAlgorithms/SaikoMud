@@ -307,7 +307,7 @@ CItem *CWorld::getItem(uint32_t id) {
          itemcache.resizeVector(id+1);
          itemcache.setElementCount(id+1);
       }
-      worldids.replaceElement(id, item);
+      itemcache.replaceElement(id, item);
    }
 
    return item;

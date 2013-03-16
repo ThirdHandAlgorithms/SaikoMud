@@ -9,7 +9,7 @@
 
 class CItem: public TGFFreeable {
 public:
-   unsigned long id;
+   __int64 id;
    TGFString name;
    unsigned int type;
    unsigned long stats_id;
@@ -19,12 +19,12 @@ public:
    unsigned int use_spell_id;
    unsigned int equip_spell_id;
 
-   bool loadFromDb(TMySQLSquirrelConnection *pConn, unsigned long id);
+   bool loadFromDb(TMySQLSquirrelConnection *pConn, __int64 id);
 };
 
 class CDropPoolItem: public TGFFreeable {
 public:
-   unsigned long item_id;
+   __int64 item_id;
    double chance;
 };
 
