@@ -72,6 +72,7 @@ public:
    CQuest *getQuest(uint32_t id);
 
    CItem *getItem(uint32_t id);
+   CBaseCombatStats *getItemStats(uint32_t iItemId);
 
    bool getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, long *rewards_xp);
    bool getGreeting(long iCharId, CCharacter *cFor, TGFString *sGreeting);

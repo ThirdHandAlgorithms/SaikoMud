@@ -26,22 +26,25 @@ namespace GameClient {
         public String CurrentDialog;
     };
 
-    class CCharSelf {
+    class CBaseStats {
+        public UInt32 strength = 0;
+        public UInt32 energy = 0;
+        public UInt32 protection = 0;
+    };
+
+    class CCharSelf : CBaseStats {
         public String Nickname = "";
         public UInt32 WorldID = 0;
         public UInt32 level = 0;
         public UInt32 totalxp = 0;
         public UInt32 totalhp = 0;
         public UInt32 hp = 0;
-        public UInt32 strength = 0;
-        public UInt32 energy = 0;
-        public UInt32 protection = 0;
     };
 
-    class CItem {
+    class CItem : CBaseStats {
         public UInt64 Id = 0;
         public String Name = "";
-        public String Description = "";
+        public List<String> Description;
         public UInt32 Type = 0;
         public UInt32 Slot = 0;
     };
@@ -210,6 +213,7 @@ namespace GameClient {
 
             net.combatmsg += OnCombatEvent;
             net.iteminfo += OnItemInfo;
+            net.itemstats += OnItemStatsInfo;
 
             net.Connect();
 
@@ -257,11 +261,19 @@ namespace GameClient {
             if (arr.Length == 2) {
                 LatestItem.Id = itemid;
                 LatestItem.Name = arr[0];
-                LatestItem.Description = arr[1];
+                LatestItem.Description = PrepareStringForDisplay(arr[1], font_iteminfo, 200);
                 LatestItem.Type = iType;
                 LatestItem.Slot = iSlot;
             } else {
                 LatestItem.Id = 0;
+            }
+        }
+
+        public void OnItemStatsInfo(UInt32 command, UInt32 itemid, UInt32 strength, String sItemNameAndDescription, UInt32 energy, UInt32 protection) {
+            if (itemid == LatestItem.Id) {
+                LatestItem.strength = strength;
+                LatestItem.energy = energy;
+                LatestItem.protection = protection;
             }
         }
 
@@ -682,8 +694,11 @@ namespace GameClient {
                 Video.Screen.Blit(title, r);
 
                 r.Y += 50;
-                Surface description = font_iteminfo.Render(LatestItem.Description, Color.Black);
-                Video.Screen.Blit(description, r);
+                foreach (var s in LatestItem.Description) {
+                    Surface description = font_iteminfo.Render(s, Color.Black);
+                    Video.Screen.Blit(description, r);
+                    r.Y += 25;
+                }
 
                 String slottext = "";
                 switch (LatestItem.Slot) {
@@ -693,11 +708,37 @@ namespace GameClient {
                     case 4: slottext = "gloves"; break;
                     case 5: slottext = "weapon"; break;
                 }
+
+                r.Y = ToolTipLocation.Y + 170;
                 Surface m_slottext = font_iteminfo.Render("Equipable as: " + slottext, Color.Black);
-                r.Y += 100;
                 Video.Screen.Blit(m_slottext, r);
 
+                r.Y += 25;
+                int ry = r.Y;
 
+                Surface st = font_iteminfo.Render("Strength", Color.Black);
+                Video.Screen.Blit(st, r);
+                
+                r.Y += 25;
+                Surface en = font_iteminfo.Render("Energy", Color.Black);
+                Video.Screen.Blit(en, r);
+
+                r.Y += 25; 
+                Surface pr = font_iteminfo.Render("Protection", Color.Black);
+                Video.Screen.Blit(pr, r);
+
+                r.Y = ry;
+                r.X += 100;
+                Surface stval = font_iteminfo.Render(LatestItem.strength + "", Color.Black);
+                Video.Screen.Blit(stval, r);
+
+                r.Y += 25;
+                Surface enval = font_iteminfo.Render(LatestItem.energy + "", Color.Black);
+                Video.Screen.Blit(enval, r);
+
+                r.Y += 25;
+                Surface prval = font_iteminfo.Render(LatestItem.protection + "", Color.Black);
+                Video.Screen.Blit(prval, r);
             }
         }
 

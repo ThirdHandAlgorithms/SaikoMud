@@ -295,22 +295,30 @@ CCharacter *CWorld::getCharacter(uint32_t id) {
    return static_cast<CCharacter *>(worldids.elementAt(id));
 }
 
-CItem *CWorld::getItem(uint32_t id) {
+CItem *CWorld::getItem(uint32_t iItemId) {
    // todo: what to do when item id exceeds 32bits uint
-   CItem *item = static_cast<CItem *>(itemcache.elementAt(id));
+   CItem *item = static_cast<CItem *>(itemcache.elementAt(iItemId));
 
    if (item == NULL) {
       item = new CItem();
-      item->loadFromDb(this->conn, id);
+      item->loadFromDb(this->conn, iItemId);
 
-      if (itemcache.size() < id) {
-         itemcache.resizeVector(id+1);
-         itemcache.setElementCount(id+1);
+      if (itemcache.size() < iItemId) {
+         itemcache.resizeVector(iItemId+1);
+         itemcache.setElementCount(iItemId+1);
       }
-      itemcache.replaceElement(id, item);
+      itemcache.replaceElement(iItemId, item);
    }
 
    return item;
+}
+
+CBaseCombatStats *CWorld::getItemStats(uint32_t iItemId) {
+   CItem *item = this->getItem(iItemId);
+   if (item != NULL) {
+      return new CCombatStats( this->conn, item->stats_id );
+   }
+   return NULL;
 }
 
 uint32_t CWorld::generateUniqueWorldId(CCharacter *c) {
