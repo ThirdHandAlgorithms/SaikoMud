@@ -59,6 +59,8 @@ public:
 
    // player specific functions
    bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
+
+   int getItemsInSlots(TGFVector *v);
 };
 
 class CNPCharacter: public CCharacter {

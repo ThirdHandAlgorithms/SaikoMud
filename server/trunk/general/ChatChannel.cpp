@@ -40,11 +40,7 @@ void CChatChannel::execute() {
          CTelnetConnection *c = static_cast<CTelnetConnection *>( this->clients.elementAt(i) );
          if ( c != NULL ) {
             if ( c->isRunning() ) {
-               if ( c->inBinaryMode() ) {
-                  c->sendBin( c_response_chatmessage, this->channelnr, 0, &cc->s );
-               } else {
-                  c->send( &cc->s );
-               }
+               c->sendChatMessage( this->channelnr, &cc->s );
             } else {
                this->delClient(c);
             }

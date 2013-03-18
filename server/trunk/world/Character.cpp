@@ -106,6 +106,47 @@ void CCharacter::calculateStats() {
    // apply stat modifiers
 }
 
+int CCharacter::getItemsInSlots(TGFVector *v) {
+   int c = 0;
+
+   v->clear();
+   v->resizeVector(5);
+   v->setElementCount(5);
+
+   TGFString sql(
+      "SELECT item.* \
+      FROM charslots \
+      LEFT OUTER JOIN item ON (charslots.item_id=item.id) \
+      WHERE charslots.char_id=:charid \
+      ORDER BY item.charslot_id ASC");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("charid")->setInteger(this->id);
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      TGFBRecord rec;
+      while ( qry.next() ) {
+         CItem *item = new CItem();
+         item->loadFromRecord(&qry);
+
+         if (item->charslot_id > 0) {
+            // index 0..4 equal to slot id -1
+            v->replaceElement(item->charslot_id - 1, item);
+         } else {
+            printf("CCharacter::getItemsInSlots(): '%s' equiped item '%d' that can't be equiped", this->name.get(), item->id);
+
+            delete item;
+         }
+
+         c++;
+      }
+   } else {
+      printf("CCharacter::getItemsInSlots(): %s\n", err.errorstring.getValue());
+   }
+
+   return c;
+}
+
 void CCharacter::load() {
    TGFString sql("select * from `char` where id=:id");
    TMySQLSquirrel qry(this->conn);
