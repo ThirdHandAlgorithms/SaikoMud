@@ -117,6 +117,11 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <Content Include="Data\generic_bodyslot.png" />
+    <Content Include="Data\generic_feetslot.png" />
+    <Content Include="Data\generic_handsslot.png" />
+    <Content Include="Data\generic_headslot.png" />
+    <Content Include="Data\generic_weaponslot.png" />
     <Content Include="Data\infobox.png" />
     <Content Include="Data\intro_test.mp3" />
     <Content Include="Data\npcs.png" />
