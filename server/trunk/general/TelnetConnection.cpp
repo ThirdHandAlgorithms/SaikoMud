@@ -86,6 +86,51 @@ void CTelnetConnection::sendBin(uint32_t command, uint32_t intparam1, uint32_t i
    this->send(&tmp);
 }
 
+void CTelnetConnection::sendBin2(uint32_t command, std::vector<uint32_t> *intarray, TGFStringVector *strarray) {
+   TGFString tmp;
+   tmp.append((command & 0xff000000) >> 24);
+   tmp.append((command & 0x00ff0000) >> 16);
+   tmp.append((command & 0x0000ff00) >> 8);
+   tmp.append((command & 0x000000ff));
+
+   uint32_t intcount = intarray->size();
+
+   tmp.append((intcount & 0xff000000) >> 24);
+   tmp.append((intcount & 0x00ff0000) >> 16);
+   tmp.append((intcount & 0x0000ff00) >> 8);
+   tmp.append((intcount & 0x000000ff));
+
+   uint32_t strcount = strarray->size();
+
+   tmp.append((strcount & 0xff000000) >> 24);
+   tmp.append((strcount & 0x00ff0000) >> 16);
+   tmp.append((strcount & 0x0000ff00) >> 8);
+   tmp.append((strcount & 0x000000ff));
+
+   for(std::vector<uint32_t>::iterator it = intarray->begin(); it != intarray->end(); ++it) {
+      uint32_t a = *it;
+
+      tmp.append((a & 0xff000000) >> 24);
+      tmp.append((a & 0x00ff0000) >> 16);
+      tmp.append((a & 0x0000ff00) >> 8);
+      tmp.append((a & 0x000000ff));
+   }
+
+   for (unsigned int i = 0; i < strcount; i++) {
+      TGFString *s = strarray->getChunk(i);
+
+      uint32_t len = s->getLength();
+      tmp.append((len & 0xff000000) >> 24);
+      tmp.append((len & 0x00ff0000) >> 16);
+      tmp.append((len & 0x0000ff00) >> 8);
+      tmp.append((len & 0x000000ff));
+
+      tmp.append(s);
+   }
+
+   this->send(&tmp);
+}
+
 bool CTelnetConnection::decodeNextBinMessageInBuffer(uint32_t *command, uint32_t *intparam1, uint32_t *intparam2, TGFString *s, uint32_t *intparam3, uint32_t *intparam4) {
    unsigned long iBufLen = buffer.getLength();
 
@@ -106,102 +151,165 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(uint32_t *command, uint32_t
    bool bIntParamCommand = ((iCommand & 0x20000000) > 0);
    bool bExtIntParamCommand = ((iCommand & 0x40000000) > 0);
 
+   bool bIntStrArrays = ((iCommand & 0x80000000) > 0);
+
+   std::vector<uint32_t> intarray;
+   TGFStringVector strarray;
+
    // void = 4
    // int = 12 (cmd 4 + int1 4 + int2 4)
    // str = 4+4 = 8
    // int+str = 12 + 4 = 16
+   if (bIntStrArrays) {
+      unsigned long i = 4;
 
-   if (!(bIsStrCommand || bIntParamCommand || bExtIntParamCommand)) {
+      if (iBufLen < 12) {
+         return false;
+      }
+
+      uint32_t intcount = 0;
+      intcount |= (uint32_t)(arrBuffer[i] << 24);
+      intcount |= (uint32_t)(arrBuffer[i + 1] << 16);
+      intcount |= (uint32_t)(arrBuffer[i + 2] << 8);
+      intcount |= (uint32_t)(arrBuffer[i + 3]);
+      i += 4;
+
+      uint32_t strcount = 0;
+      strcount |= (uint32_t)(arrBuffer[i] << 24);
+      strcount |= (uint32_t)(arrBuffer[i + 1] << 16);
+      strcount |= (uint32_t)(arrBuffer[i + 2] << 8);
+      strcount |= (uint32_t)(arrBuffer[i + 3]);
+      i += 4;
+
+      if (iBufLen < i + intcount * 4 + strcount * 4) {
+         return false;
+      }
+
+      uint32_t y;
+      for (int x = 0; x < intcount; x++) {
+         y = 0;
+         y |= (uint32_t)(arrBuffer[i] << 24);
+         y |= (uint32_t)(arrBuffer[i + 1] << 16);
+         y |= (uint32_t)(arrBuffer[i + 2] << 8);
+         y |= (uint32_t)(arrBuffer[i + 3]);
+
+         i += 4;
+
+         intarray.push_back(y);
+      }
+
+      for (int x = 0; x < strcount; x++) {
+         y = 0;
+         y |= (uint32_t)(arrBuffer[i] << 24);
+         y |= (uint32_t)(arrBuffer[i + 1] << 16);
+         y |= (uint32_t)(arrBuffer[i + 2] << 8);
+         y |= (uint32_t)(arrBuffer[i + 3]);
+
+         i += 4;
+
+         strarray.addChunk(new TGFString(buffer.getPointer(i), y));
+
+         i += (int)y;
+      }
+
+      buffer.remove(0, i - 1);
+
       *command = iCommand;
 
-      buffer.remove(0, 3);
 
-      return true;
    } else {
-      int iMin = 0;
+      if (!(bIsStrCommand || bIntParamCommand || bExtIntParamCommand)) {
+         *command = iCommand;
 
-      if (bIsStrCommand) {
-         iMin += 4;
+         buffer.remove(0, 3);
+
+         return true;
+      } else {
+         int iMin = 0;
+
+         if (bIsStrCommand) {
+            iMin += 4;
+         }
+         if (bIntParamCommand) {
+            iMin += 8;
+         }
+         if (bExtIntParamCommand) {
+            iMin += 8;
+         }
+
+         if (iBufLen < iMin) {
+            return false;
+         }
       }
+
+      unsigned long i = 4;
       if (bIntParamCommand) {
-         iMin += 8;
+         uint32_t iIntParam1 = 0;
+         uint32_t iIntParam2 = 0;
+
+         iIntParam1 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+         iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+         iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+         iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+3]);
+
+         *intparam1 = iIntParam1;
+
+         i += 4;
+
+         iIntParam2 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+         iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+         iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+         iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+3]);
+
+         *intparam2 = iIntParam2;
+
+         i += 4;
       }
+
       if (bExtIntParamCommand) {
-         iMin += 8;
+         uint32_t iIntParam3 = 0;
+         uint32_t iIntParam4 = 0;
+
+         iIntParam3 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+         iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+         iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+         iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+3]);
+
+         *intparam3 = iIntParam3;
+
+         i += 4;
+
+         iIntParam4 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+         iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+         iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+         iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+3]);
+
+         *intparam4 = iIntParam4;
+
+         i += 4;
       }
 
-      if (iBufLen < iMin) {
-         return false;
-      }
-   }
+      uint32_t iStrLen = 0;
+      if (bIsStrCommand) {
 
-   unsigned long i = 4;
-   if (bIntParamCommand) {
-      uint32_t iIntParam1 = 0;
-      uint32_t iIntParam2 = 0;
+         iStrLen |= static_cast<uint32_t>(arrBuffer[i]) << 24;
+         iStrLen |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
+         iStrLen |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
+         iStrLen |= static_cast<uint32_t>(arrBuffer[i+3]);
 
-      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
-      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
-      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
-      iIntParam1 |= static_cast<uint32_t>(arrBuffer[i+3]);
+         i += 4;
 
-      *intparam1 = iIntParam1;
+         if ((i + iStrLen) < iBufLen) {
+            return false;
+         }
 
-      i += 4;
-
-      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
-      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
-      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
-      iIntParam2 |= static_cast<uint32_t>(arrBuffer[i+3]);
-
-      *intparam2 = iIntParam2;
-
-      i += 4;
-   }
-
-   if (bExtIntParamCommand) {
-      uint32_t iIntParam3 = 0;
-      uint32_t iIntParam4 = 0;
-
-      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
-      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
-      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
-      iIntParam3 |= static_cast<uint32_t>(arrBuffer[i+3]);
-
-      *intparam3 = iIntParam3;
-
-      i += 4;
-
-      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i]) << 24;
-      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
-      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
-      iIntParam4 |= static_cast<uint32_t>(arrBuffer[i+3]);
-
-      *intparam4 = iIntParam4;
-
-      i += 4;
-   }
-
-   uint32_t iStrLen = 0;
-   if (bIsStrCommand) {
-
-      iStrLen |= static_cast<uint32_t>(arrBuffer[i]) << 24;
-      iStrLen |= static_cast<uint32_t>(arrBuffer[i+1]) << 16;
-      iStrLen |= static_cast<uint32_t>(arrBuffer[i+2]) << 8;
-      iStrLen |= static_cast<uint32_t>(arrBuffer[i+3]);
-
-      i += 4;
-
-      if ((i + iStrLen) < iBufLen) {
-         return false;
+         s->setValue(buffer.getPointer(i), iStrLen);
       }
 
-      s->setValue(buffer.getPointer(i), iStrLen);
-   }
-
-   buffer.remove(0, i + iStrLen - 1);
+      buffer.remove(0, i + iStrLen - 1);
    
-   *command = iCommand;
+      *command = iCommand;
+   }
 
    return true;
 }
@@ -293,6 +401,39 @@ bool CTelnetConnection::inform_itemstats(uint32_t iItemId) {
    } else {
       // todo: item/stats don't exist, give the client a hard time about things he shouldn't be doing...
       return false;
+   }
+
+   return true;
+}
+
+bool CTelnetConnection::inform_gearslots(uint32_t iWorldId) {
+   std::vector<uint32_t> intarr;
+   TGFStringVector strarr;
+
+   /*
+   intarr.push_back(123);
+   strarr.addChunk(new TGFString("123456"));
+   */
+
+   CCharacter *c = Global_World()->getCharacter(iWorldId);
+   if (c != NULL) {
+      intarr.push_back(iWorldId);
+      strarr.addChunk(new TGFString(c->name.link()));
+
+      TGFVector v;
+      int x = c->getItemsInSlots(&v);
+      for (int i = 0; i < 5; i++) {
+         CItem *item = static_cast<CItem *>(v.elementAt(i));
+         if (item != NULL) {
+            intarr.push_back(item->id);
+            strarr.addChunk( new TGFString(&item->name) );
+         } else {
+            intarr.push_back(0);
+            strarr.addChunk( new TGFString("") );
+         }
+      }
+
+      this->sendBin2(c_response_gearslots, &intarr, &strarr);
    }
 
    return true;
@@ -412,6 +553,14 @@ void CTelnetConnection::informAboutAllStats(CCharacter *cAbout) {
          this->sendBin(c_event_statinfo_energy, cAbout->WorldId, stats->energy.get(), NULL);
          this->sendBin(c_event_statinfo_protection, cAbout->WorldId, stats->protection.get(), NULL);
       }
+   }
+}
+
+void CTelnetConnection::sendChatMessage(uint32_t iChannelNr, TGFString *sMsg) {
+   if (!bBinaryMode) {
+      this->send(sMsg);
+   } else {
+      this->sendBin(c_response_chatmessage, iChannelNr, 0, sMsg);
    }
 }
 
@@ -567,6 +716,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->inform_iteminfo(intparam1);
             } else if (command == c_info_getitemstats) {
                bActionOk = this->inform_itemstats(intparam1);
+            } else if (command == c_info_getgearslots) {
+               bActionOk = this->inform_gearslots(intparam1);
             }
 
             this->inform_lastaction();

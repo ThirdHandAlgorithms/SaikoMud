@@ -32,9 +32,26 @@ namespace GameClient {
         public UInt32 protection = 0;
     };
 
-    class CCharSelf : CBaseStats {
+    class CCharSlot {
+        public UInt32 slot_id = 0;
+        public UInt32 item_id = 0;
+        public String item_name = "";
+
+        public CItem cacheditem = null;
+    }
+
+    class CCharacter : CBaseStats {
         public String Nickname = "";
         public UInt32 WorldID = 0;
+
+        public CCharSlot slot1 = null;
+        public CCharSlot slot2 = null;
+        public CCharSlot slot3 = null;
+        public CCharSlot slot4 = null;
+        public CCharSlot slot5 = null;
+    };
+
+    class CCharSelf : CCharacter {
         public UInt32 level = 0;
         public UInt32 totalxp = 0;
         public UInt32 totalhp = 0;
@@ -83,6 +100,17 @@ namespace GameClient {
 
         private Point LastHeroPos = new Point();
         private Point NewHeroPos = new Point();
+
+        private Surface m_generic_icon_slot1;
+        private Surface m_generic_icon_slot2;
+        private Surface m_generic_icon_slot3;
+        private Surface m_generic_icon_slot4;
+        private Surface m_generic_icon_slot5;
+        private Rectangle Slot1Area = new Rectangle();
+        private Rectangle Slot2Area = new Rectangle();
+        private Rectangle Slot3Area = new Rectangle();
+        private Rectangle Slot4Area = new Rectangle();
+        private Rectangle Slot5Area = new Rectangle();
 
         private UInt32 CurrentNPC = 0;
 
@@ -191,7 +219,30 @@ namespace GameClient {
             NPCDialogQuestTextArea.Width = 350;
             NPCDialogQuestTextArea.Height = 400;
 
+            Slot1Area.X = SlotsAndStatsArea.X + 86;
+            Slot1Area.Y = SlotsAndStatsArea.Y + 10;
+            Slot1Area.Width = 59;
+            Slot1Area.Height = 59;
 
+            Slot2Area.X = SlotsAndStatsArea.X + 86;
+            Slot2Area.Y = SlotsAndStatsArea.Y + 94;
+            Slot2Area.Width = 59;
+            Slot2Area.Height = 59;
+
+            Slot3Area.X = SlotsAndStatsArea.X + 86;
+            Slot3Area.Y = SlotsAndStatsArea.Y + 160;
+            Slot3Area.Width = 59;
+            Slot3Area.Height = 59;
+
+            Slot4Area.X = SlotsAndStatsArea.X + 13;
+            Slot4Area.Y = SlotsAndStatsArea.Y + 94;
+            Slot4Area.Width = 59;
+            Slot4Area.Height = 59;
+
+            Slot5Area.X = SlotsAndStatsArea.X + 160;
+            Slot5Area.Y = SlotsAndStatsArea.Y + 94;
+            Slot5Area.Width = 59;
+            Slot5Area.Height = 59;
 
             Events.Quit += new EventHandler<QuitEventArgs>(ApplicationQuitEventHandler);
 
@@ -214,6 +265,8 @@ namespace GameClient {
             net.combatmsg += OnCombatEvent;
             net.iteminfo += OnItemInfo;
             net.itemstats += OnItemStatsInfo;
+            
+            net.gearslots += OnGearSlots;
 
             net.Connect();
 
@@ -239,6 +292,7 @@ namespace GameClient {
                 CharSelf.WorldID = intparam1;
 
                 net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
+                //net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");    // todo: bugfix communication first
             }
 
             LastActionTime = DateTime.Now;
@@ -252,6 +306,79 @@ namespace GameClient {
             //frmDebug.addMessage(str + crlf);
 
             arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
+        }
+
+        public void OnGearSlots(UInt32 command, List<UInt32> intarr, List<String> strarr) {
+
+            if (intarr.Count == 6) {
+                if (CharSelf.WorldID == intarr[0]) {
+                    // item per slot
+                    var slot1itemid = intarr[1];
+                    var slot2itemid = intarr[2];
+                    var slot3itemid = intarr[3];
+                    var slot4itemid = intarr[4];
+                    var slot5itemid = intarr[5];
+
+                    var slot1itemname = strarr[1];
+                    var slot2itemname = strarr[2];
+                    var slot3itemname = strarr[3];
+                    var slot4itemname = strarr[4];
+                    var slot5itemname = strarr[5];
+
+                    if (CharSelf.slot1 != null) {
+                        if (CharSelf.slot1.item_id != slot1itemid) {
+                            CharSelf.slot1 = null;
+                        }
+                    }
+                    if (CharSelf.slot2 != null) {
+                        if (CharSelf.slot2.item_id != slot2itemid) {
+                            CharSelf.slot2 = null;
+                        }
+                    }
+                    if (CharSelf.slot3 != null) {
+                        if (CharSelf.slot3.item_id != slot3itemid) {
+                            CharSelf.slot3 = null;
+                        }
+                    }
+                    if (CharSelf.slot4 != null) {
+                        if (CharSelf.slot4.item_id != slot4itemid) {
+                            CharSelf.slot4 = null;
+                        }
+                    }
+                    if (CharSelf.slot5 != null) {
+                        if (CharSelf.slot5.item_id != slot5itemid) {
+                            CharSelf.slot5 = null;
+                        }
+                    }
+
+                    if ((CharSelf.slot1 == null) && (slot1itemid != 0)) {
+                        CharSelf.slot1 = new CCharSlot();
+                        CharSelf.slot1.item_id = slot1itemid;
+                        CharSelf.slot1.item_name = slot1itemname;
+                    }
+                    if ((CharSelf.slot2 == null) && (slot2itemid != 0)) {
+                        CharSelf.slot2 = new CCharSlot();
+                        CharSelf.slot2.item_id = slot2itemid;
+                        CharSelf.slot2.item_name = slot2itemname;
+                    }
+                    if ((CharSelf.slot3 == null) && (slot3itemid != 0)) {
+                        CharSelf.slot3 = new CCharSlot();
+                        CharSelf.slot3.item_id = slot3itemid;
+                        CharSelf.slot3.item_name = slot3itemname;
+                    }
+                    if ((CharSelf.slot4 == null) && (slot4itemid != 0)) {
+                        CharSelf.slot4 = new CCharSlot();
+                        CharSelf.slot4.item_id = slot4itemid;
+                        CharSelf.slot4.item_name = slot4itemname;
+                    }
+                    if ((CharSelf.slot5 == null) && (slot5itemid != 0)) {
+                        CharSelf.slot5 = new CCharSlot();
+                        CharSelf.slot5.item_id = slot5itemid;
+                        CharSelf.slot5.item_name = slot5itemname;
+                    }
+                }
+            }
+
         }
 
         public void OnItemInfo(UInt32 command, UInt32 itemid, UInt32 reserved, String sItemNameAndDescription, UInt32 iType, UInt32 iSlot) {
@@ -505,6 +632,18 @@ namespace GameClient {
 
             m_TooltipBox = new Surface(@"..\..\Data\tooltip.png");
             m_TooltipBox.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_generic_icon_slot1 = new Surface(@"..\..\Data\generic_headslot.png");
+            m_generic_icon_slot1.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_generic_icon_slot2 = new Surface(@"..\..\Data\generic_bodyslot.png");
+            m_generic_icon_slot2.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_generic_icon_slot3 = new Surface(@"..\..\Data\generic_feetslot.png");
+            m_generic_icon_slot3.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_generic_icon_slot4 = new Surface(@"..\..\Data\generic_weaponslot.png");
+            m_generic_icon_slot4.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_generic_icon_slot5 = new Surface(@"..\..\Data\generic_handsslot.png");
+            m_generic_icon_slot5.SourceColorKey = Color.FromArgb(255, 0, 255);
+
         }
 
         private void LoadTextures() {
@@ -607,6 +746,48 @@ namespace GameClient {
 
         private void RenderSlotsAndStats() {
             Video.Screen.Blit(m_statsandslots, SlotsAndStatsArea);
+            
+            /*
+            // test slot icons
+            Video.Screen.Blit(m_generic_icon_slot1, Slot1Area);
+            Video.Screen.Blit(m_generic_icon_slot2, Slot2Area);
+            Video.Screen.Blit(m_generic_icon_slot3, Slot3Area);
+            Video.Screen.Blit(m_generic_icon_slot4, Slot4Area);
+            Video.Screen.Blit(m_generic_icon_slot5, Slot5Area);
+             */
+
+            if (CharSelf != null) {
+                if (CharSelf.slot1 != null) {
+                    if (CharSelf.slot1.item_id != 0) {
+                        Video.Screen.Blit(m_generic_icon_slot1, Slot1Area);
+                    }
+                }
+
+                if (CharSelf.slot2 != null) {
+                    if (CharSelf.slot2.item_id != 0) {
+                        Video.Screen.Blit(m_generic_icon_slot2, Slot2Area);
+                    }
+                }
+
+                if (CharSelf.slot3 != null) {
+                    if (CharSelf.slot3.item_id != 0) {
+                        Video.Screen.Blit(m_generic_icon_slot3, Slot3Area);
+                    }
+                }
+
+                if (CharSelf.slot4 != null) {
+                    if (CharSelf.slot4.item_id != 0) {
+                        Video.Screen.Blit(m_generic_icon_slot4, Slot4Area);
+                    }
+                }
+
+                if (CharSelf.slot5 != null) {
+                    if (CharSelf.slot5.item_id != 0) {
+                        Video.Screen.Blit(m_generic_icon_slot5, Slot5Area);
+                    }
+                }
+            }
+
 
             Surface m_Level = font_actioninfo.Render("Level", Color.Black);
             Surface m_XP = font_actioninfo.Render("XP", Color.Black);
@@ -988,6 +1169,22 @@ namespace GameClient {
                     break;
                 case Key.Keypad2:
                     net.SendBinToServer(GameNet.c_info_getiteminfo, 2, 0, "");
+                    break;
+                case Key.Keypad8:
+                    net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
+                    break;
+                case Key.Keypad9:
+                    List<UInt32> stuffi = new List<UInt32>();
+                    List<String> stuffs = new List<String>();
+
+                    stuffi.Add(123);
+                    stuffi.Add(456);
+                    stuffi.Add(789);
+
+                    stuffs.Add("123");
+                    stuffs.Add("123456");
+
+                    net.SendBin2ToServer(GameNet.c_response_gearslots, stuffi, stuffs);
                     break;
                 case Key.Q:
                     Events.QuitApplication();

@@ -19,6 +19,7 @@ public:
    unsigned int use_spell_id;
    unsigned int equip_spell_id;
 
+   bool loadFromRecord(TRemoteSQL *qry);
    bool loadFromDb(TMySQLSquirrelConnection *pConn, __int64 id);
 };
 

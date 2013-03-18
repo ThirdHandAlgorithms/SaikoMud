@@ -24,6 +24,8 @@ namespace GameClient {
         public delegate void GameNetCallback(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str);
         public delegate void GameNetExtCallback(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str, UInt32 intparam3, UInt32 intparam4);
 
+        public delegate void GameNetDynCallback(UInt32 command, List<UInt32> intarr, List<String> strarr);
+
         public event GameNetCallback actioninfo;
         public event GameNetCallback roominfo;
         public event GameNetCallback mapinfo;
@@ -37,6 +39,7 @@ namespace GameClient {
         public event GameNetExtCallback combatmsg;
         public event GameNetExtCallback iteminfo;
         public event GameNetExtCallback itemstats;
+        public event GameNetDynCallback gearslots;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -59,6 +62,7 @@ namespace GameClient {
         public const UInt32 c_self_getallstats = 0x00000201;
 
         public const UInt32 c_info_getiteminfo = 0x20000301;
+        public const UInt32 c_info_getgearslots = 0x30400001;
 
         // responses
         public const UInt32 c_response_lastactioninfo = 0x30010000;
@@ -86,6 +90,8 @@ namespace GameClient {
 
         public const UInt32 c_response_iteminfo = 0x70300001;
         public const UInt32 c_response_itemstats = 0x70300002;
+
+        public const UInt32 c_response_gearslots = 0x80400001;
 
         public const UInt32 COMBATEVENT_MISS = 1;
         public const UInt32 COMBATEVENT_HIT = 2;
@@ -123,64 +129,126 @@ namespace GameClient {
             bool bIntParamCommand = ((command & 0x20000000) > 0);
             bool bExtIntParamCommand = ((command & 0x40000000) > 0);
 
+            bool bIntStrArrays = ((command & 0x80000000) > 0);
+
+            List<UInt32> intarr = new List<UInt32>();
+            List<String> strarr = new List<String>();
+
 
             // TODO: check length of data buffer, could be shorter than command parameters promiss
 
 
-            if (bIntParamCommand) {
-                intparam1 |= (UInt32)(sData[i] << 24);
-                intparam1 |= (UInt32)(sData[i + 1] << 16);
-                intparam1 |= (UInt32)(sData[i + 2] << 8);
-                intparam1 |= (UInt32)(sData[i + 3]);
-
-                i += 4;
-
-                intparam2 |= (UInt32)(sData[i] << 24);
-                intparam2 |= (UInt32)(sData[i + 1] << 16);
-                intparam2 |= (UInt32)(sData[i + 2] << 8);
-                intparam2 |= (UInt32)(sData[i + 3]);
-
-                i += 4;
-            }
-
-            if (bExtIntParamCommand) {
-                intparam3 |= (UInt32)(sData[i] << 24);
-                intparam3 |= (UInt32)(sData[i + 1] << 16);
-                intparam3 |= (UInt32)(sData[i + 2] << 8);
-                intparam3 |= (UInt32)(sData[i + 3]);
-
-                i += 4;
-
-                intparam4 |= (UInt32)(sData[i] << 24);
-                intparam4 |= (UInt32)(sData[i + 1] << 16);
-                intparam4 |= (UInt32)(sData[i + 2] << 8);
-                intparam4 |= (UInt32)(sData[i + 3]);
-
-                i += 4;
-            }
-
-            if (bIsStrCommand) {
-                UInt32 datlen = 0;
-                datlen |= (UInt32)(sData[i] << 24);
-                datlen |= (UInt32)(sData[i + 1] << 16);
-                datlen |= (UInt32)(sData[i + 2] << 8);
-                datlen |= (UInt32)(sData[i + 3]);
-
-                i += 4;
-
-                if (sData.Length >= (i + datlen)) {
-                    sDataStr = System.Text.Encoding.ASCII.GetString(sData, i, (int)(datlen));
-
-                    int newlen = (int)(sData.Length - i - datlen);
-                    byte[] sCopyData = new byte[newlen];
-                    Buffer.BlockCopy(sData, (int)(i + datlen), sCopyData, 0, newlen);
-                    sData = sCopyData;
+            if (bIntStrArrays) {
+                if (sData.Length < i + 8) {
+                    return;
                 }
-            } else {
+
+                UInt32 intcount = 0;
+                intcount |= (UInt32)(sData[i] << 24);
+                intcount |= (UInt32)(sData[i + 1] << 16);
+                intcount |= (UInt32)(sData[i + 2] << 8);
+                intcount |= (UInt32)(sData[i + 3]);
+                i += 4;
+
+                UInt32 strcount = 0;
+                strcount |= (UInt32)(sData[i] << 24);
+                strcount |= (UInt32)(sData[i + 1] << 16);
+                strcount |= (UInt32)(sData[i + 2] << 8);
+                strcount |= (UInt32)(sData[i + 3]);
+                i += 4;
+
+                if (sData.Length < i + intcount * 4 + strcount * 4) {
+                    return;
+                }
+
+                UInt32 y;
+                for (int x = 0; x < intcount; x++) {
+                    y = 0;
+                    y |= (UInt32)(sData[i] << 24);
+                    y |= (UInt32)(sData[i + 1] << 16);
+                    y |= (UInt32)(sData[i + 2] << 8);
+                    y |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+
+                    intarr.Add(y);
+                }
+
+                for (int x = 0; x < strcount; x++) {
+                    y = 0;
+                    y |= (UInt32)(sData[i] << 24);
+                    y |= (UInt32)(sData[i + 1] << 16);
+                    y |= (UInt32)(sData[i + 2] << 8);
+                    y |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+
+                    String sTemp = System.Text.Encoding.ASCII.GetString(sData, i, (int)(y));
+                    strarr.Add(sTemp);
+
+                    i += (int)y;
+                }
+
                 int newlen = (int)(sData.Length - i);
                 byte[] sCopyData = new byte[newlen];
                 Buffer.BlockCopy(sData, (int)(i), sCopyData, 0, newlen);
                 sData = sCopyData;
+            } else {
+                if (bIntParamCommand) {
+                    intparam1 |= (UInt32)(sData[i] << 24);
+                    intparam1 |= (UInt32)(sData[i + 1] << 16);
+                    intparam1 |= (UInt32)(sData[i + 2] << 8);
+                    intparam1 |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+
+                    intparam2 |= (UInt32)(sData[i] << 24);
+                    intparam2 |= (UInt32)(sData[i + 1] << 16);
+                    intparam2 |= (UInt32)(sData[i + 2] << 8);
+                    intparam2 |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+                }
+
+                if (bExtIntParamCommand) {
+                    intparam3 |= (UInt32)(sData[i] << 24);
+                    intparam3 |= (UInt32)(sData[i + 1] << 16);
+                    intparam3 |= (UInt32)(sData[i + 2] << 8);
+                    intparam3 |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+
+                    intparam4 |= (UInt32)(sData[i] << 24);
+                    intparam4 |= (UInt32)(sData[i + 1] << 16);
+                    intparam4 |= (UInt32)(sData[i + 2] << 8);
+                    intparam4 |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+                }
+
+                if (bIsStrCommand) {
+                    UInt32 datlen = 0;
+                    datlen |= (UInt32)(sData[i] << 24);
+                    datlen |= (UInt32)(sData[i + 1] << 16);
+                    datlen |= (UInt32)(sData[i + 2] << 8);
+                    datlen |= (UInt32)(sData[i + 3]);
+
+                    i += 4;
+
+                    if (sData.Length >= (i + datlen)) {
+                        sDataStr = System.Text.Encoding.ASCII.GetString(sData, i, (int)(datlen));
+
+                        int newlen = (int)(sData.Length - i - datlen);
+                        byte[] sCopyData = new byte[newlen];
+                        Buffer.BlockCopy(sData, (int)(i + datlen), sCopyData, 0, newlen);
+                        sData = sCopyData;
+                    }
+                } else {
+                    int newlen = (int)(sData.Length - i);
+                    byte[] sCopyData = new byte[newlen];
+                    Buffer.BlockCopy(sData, (int)(i), sCopyData, 0, newlen);
+                    sData = sCopyData;
+                }
             }
 
             try {
@@ -220,6 +288,8 @@ namespace GameClient {
                     iteminfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_itemstats) {
                     itemstats.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
+                } else if (command == c_response_gearslots) {
+                    gearslots.Invoke(command, intarr, strarr);
                 }
                 
             } catch {
@@ -300,6 +370,72 @@ namespace GameClient {
             // expect message to be ansistring...
 
             Byte[] data = System.Text.Encoding.UTF8.GetBytes(message);
+            stream.Write(data, 0, data.Length);
+        }
+
+        public void SendBin2ToServer(UInt32 command, List<UInt32> intarray, List<String> strarray) {
+            long c = 12;
+            c += intarray.Count * 4;
+            c += strarray.Count * 4;
+
+            long d = strarray.Count;
+            for (int j = 0; j < d; j++) {
+                c += strarray[j].Length;
+            }
+
+            Byte[] data = new Byte[c];
+
+            int i = 0;
+            data[i] = (Byte)((command & 0xFF000000) >> 24);
+            data[i+1] = (Byte)((command & 0x00FF0000) >> 16);
+            data[i+2] = (Byte)((command & 0x0000FF00) >> 8);
+            data[i+3] = (Byte)(command & 0x000000FF);
+            i += 4;
+
+            d = intarray.Count;
+            data[i] = (Byte)((d & 0xFF000000) >> 24);
+            data[i + 1] = (Byte)((d & 0x00FF0000) >> 16);
+            data[i + 2] = (Byte)((d & 0x0000FF00) >> 8);
+            data[i + 3] = (Byte)(d & 0x000000FF);
+            i += 4;
+
+            d = strarray.Count;
+            data[i] = (Byte)((d & 0xFF000000) >> 24);
+            data[i + 1] = (Byte)((d & 0x00FF0000) >> 16);
+            data[i + 2] = (Byte)((d & 0x0000FF00) >> 8);
+            data[i + 3] = (Byte)(d & 0x000000FF);
+            i += 4;
+
+            d = intarray.Count;
+            for (int j = 0; j < d; j++) {
+                UInt32 x = intarray[j];
+
+                data[i] = (Byte)((x & 0xFF000000) >> 24);
+                data[i + 1] = (Byte)((x & 0x00FF0000) >> 16);
+                data[i + 2] = (Byte)((x & 0x0000FF00) >> 8);
+                data[i + 3] = (Byte)(x & 0x000000FF);
+
+                i += 4;
+            }
+
+            d = strarray.Count;
+            for (int j = 0; j < d; j++) {
+                String s = strarray[j];
+                UInt32 len = (UInt32)s.Length;
+
+                data[i] = (Byte)((len & 0xFF000000) >> 24);
+                data[i + 1] = (Byte)((len & 0x00FF0000) >> 16);
+                data[i + 2] = (Byte)((len & 0x0000FF00) >> 8);
+                data[i + 3] = (Byte)(len & 0x000000FF);
+
+                i += 4;
+
+                Byte[] bytemsg = System.Text.Encoding.UTF8.GetBytes(s);
+                Buffer.BlockCopy(bytemsg, 0, data, i, bytemsg.Length);
+
+                i += bytemsg.Length;
+            }
+
             stream.Write(data, 0, data.Length);
         }
 

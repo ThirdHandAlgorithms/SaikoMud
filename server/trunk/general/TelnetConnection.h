@@ -29,6 +29,8 @@
 #define c_info_getiteminfo 0x20000301
 #define c_info_getitemstats 0x20000302
 
+#define c_info_getgearslots 0x30400001
+
 #define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
 #define c_response_asciimap 0x10030000
@@ -55,6 +57,8 @@
 
 #define c_response_iteminfo 0x70300001
 #define c_response_itemstats 0x70300002
+
+#define c_response_gearslots 0x80400001
 
 /*
 #define c_response_ 0x10100000
@@ -83,9 +87,17 @@ protected:
    bool inform_iteminfo(uint32_t iItemId);
    bool inform_itemstats(uint32_t iItemId);
 
+   bool inform_gearslots(uint32_t iWorldId);
+
+   bool inform_equipeditem(uint32_t iSlotId);
+
    //void inform_currentplayerstats();
 
    bool decodeNextBinMessageInBuffer(uint32_t *command, uint32_t *intparam1, uint32_t *intparam2, TGFString *s, uint32_t *intparam3, uint32_t *intparam4);
+
+   void send( const TGFString *s );
+   void sendBin(uint32_t command, uint32_t intparam1, uint32_t intparam2, TGFString *s, uint32_t intparam3 = 0, uint32_t intparam4 = 0);
+   void sendBin2(uint32_t command, std::vector<uint32_t> *intarray, TGFStringVector *strarray);
 public:
    CTelnetConnection( TJRBaseSocket *aSocket );
    ~CTelnetConnection();
@@ -94,9 +106,6 @@ public:
 
    void newMessageReceived( const TGFString *sMessage );
 
-   void send( const TGFString *s );
-   void sendBin(uint32_t command, uint32_t intparam1, uint32_t intparam2, TGFString *s, uint32_t intparam3 = 0, uint32_t intparam4 = 0);
-
    bool matchWithCharacterRef( void *ref );
 
    void append_nickname(TGFString *s);
@@ -104,6 +113,8 @@ public:
    void inform_earnxp(long xp, long totalxp);
    void inform_combatevent(uint32_t iSourceWorldId, uint32_t iTargetWorldId, int eventtype, int amount, TGFString *combatmsg);
    void informAboutAllStats(CCharacter *cAbout);
+
+   void sendChatMessage(uint32_t iChannelNr, TGFString *sMsg);
 
    void inform_map();
 };

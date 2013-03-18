@@ -7,6 +7,7 @@
 #include <Groundfloor/Molecules/GFString.h>
 #include "../general/Account.h"
 #include "../world/Character.h"
+#include "../world/Items.h"
 
 
 class CGameInterface: public TGFFreeable {
