@@ -39,6 +39,13 @@ void CGameInterface::DoChecks() {
    this->sLastactionInfo.setValue_ansi("");
 }
 
+bool CGameInterface::IsAdmin() {
+   if (this->loggedInAccount != NULL) {
+      return this->loggedInAccount->isAdmin;
+   }
+
+   return false;
+}
 
 // character identity
 bool CGameInterface::Login(TGFString *username, TGFString *password) {
@@ -99,14 +106,21 @@ void CGameInterface::ReloadWorld() {
 void CGameInterface::GetTinyMap(TGFString *s) {
    this->DoChecks();
 
-   Global_World()->echoAsciiMap(s, this->loggedInCharacter->x.get(), this->loggedInCharacter->y.get(), 5);
+   if (this->loggedInCharacter == NULL) {
+      Global_World()->echoAsciiMap(s, 0, 0, 20, false);
+   } else {
+      Global_World()->echoAsciiMap(s, this->loggedInCharacter->x.get(), this->loggedInCharacter->y.get(), 5);
+   }
 }
 
 BYTE CGameInterface::GetRoomInfo(TGFString *s) {
    this->DoChecks();
 
-   long x = this->loggedInCharacter->x.get();
-   long y = this->loggedInCharacter->y.get();
+   long x = 0, y = 0;
+   if (this->loggedInCharacter != NULL) {
+      x = this->loggedInCharacter->x.get();
+      y = this->loggedInCharacter->y.get();
+   }
 
    BYTE envtype = 0;
 
@@ -238,6 +252,26 @@ bool CGameInterface::run_teleport( long x, long y ) {
 	return false;
 }
 
+bool CGameInterface::admin_teleport_player( uint32_t iWorldId, long x, long y ) {
+   this->DoChecks();
+
+   this->sLastactionInfo.setValue_ansi("You're being teleported.");
+
+   CRoom *room = Global_World()->getRoom(x,y);
+   CCharacter *player = Global_World()->getCharacter(iWorldId);
+   if ((room != NULL) && (player != NULL)) {
+      if (room->traversable) {
+	      player->x.set(x);
+	      player->y.set(y);
+	      Global_CharacterUpdate()->schedule(player);
+
+         return false;
+      }
+   }
+
+	return false;
+}
+
 bool CGameInterface::attack_start(uint32_t iWorldId) {
    this->DoChecks();
 
@@ -338,9 +372,10 @@ int CGameInterface::radar_getNearbyNpcs(TGFVector *v) {
 int CGameInterface::radar_getNearbyPlayers(TGFVector *v) {
    this->DoChecks();
 
-   // todo: radar_getNearbyPlayers()
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
 
-   return 0;
+   return Global_World()->getNearbyPlayers(x, y, 5, v);
 }
 
 

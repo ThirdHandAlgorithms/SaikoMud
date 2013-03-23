@@ -5,7 +5,7 @@
 #include <Groundfloor/Materials/GFGarbageCollector.h>
 
 CTelnetServe::CTelnetServe() : TJRThreadedServer() {
-   this->startListening(23);
+   this->startListening(23123);
 }
 
 void CTelnetServe::newClientConnection( TJRBaseSocket *aClient ) {

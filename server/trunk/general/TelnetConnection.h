@@ -60,6 +60,8 @@
 
 #define c_response_gearslots 0x80400001
 
+#define c_response_playerinfo 0x70210001
+
 /*
 #define c_response_ 0x10100000
 #define c_response_ 0x10200000
@@ -90,6 +92,8 @@ protected:
    bool inform_gearslots(uint32_t iWorldId);
 
    bool inform_equipeditem(uint32_t iSlotId);
+
+   void inform_playerinfo(CCharacter *c);
 
    //void inform_currentplayerstats();
 
