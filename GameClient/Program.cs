@@ -11,6 +11,8 @@ using SdlDotNet.Input;
 using SdlDotNet.Audio;
 using System.Drawing;
 using System.Diagnostics;
+using System.Xml;
+using System.Windows.Forms;
 
 namespace GameClient {
 
@@ -143,10 +145,14 @@ namespace GameClient {
         private SdlDotNet.Graphics.Font font_questtexttitle;
         private SdlDotNet.Graphics.Font font_iteminfo;
 
+        private String DataDir = @"..\..\Data\";
+
         private String LastEventStr = "";
         private DateTime LastEventTime = DateTime.Now;
 
         private long lLoopTime = 0;
+
+        private bool showdebug = false;
 
         string[] crlf = { "" + (char)(13) + (char)(10) };
 
@@ -154,6 +160,17 @@ namespace GameClient {
 
         static void Main(string[] args) {
             new Program();
+        }
+
+        private void LoadSettings(String sFile) {
+            XmlReader reader = XmlReader.Create(sFile);
+            while (reader.Read()) {
+                if (reader.Name == "debug") {
+                    showdebug = (reader.GetAttribute("show") == "true");
+                } else if (reader.Name == "resources") {
+                    DataDir = reader.GetAttribute("dir");
+                }
+            }
         }
 
         public Program() {
@@ -164,12 +181,16 @@ namespace GameClient {
                 windir = System.Environment.GetFolderPath(Environment.SpecialFolder.Windows);
             }
 
+            LoadSettings("settings.xml");
+
+            m_vidsurf = Video.SetVideoMode(1280, 720, 32, false, false, false, true);
             Video.WindowIcon();
             Video.WindowCaption = "SaikoMUD GameClient";
-            m_vidsurf = Video.SetVideoMode(1280, 720, 32, false, false, false, true);
 
             frmDebug = new Debug();
-            frmDebug.Show();
+            if (showdebug) {
+                frmDebug.Show();
+            }
 
             font_actioninfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 18);
             font_roominfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 18);
@@ -247,6 +268,7 @@ namespace GameClient {
             Events.Quit += new EventHandler<QuitEventArgs>(ApplicationQuitEventHandler);
 
             net = new GameNet();
+            net.LoadSettings("settings.xml");
 
             net.actioninfo += OnActionInfo;
             net.roominfo += OnRoomInfo;
@@ -268,8 +290,39 @@ namespace GameClient {
             
             net.gearslots += OnGearSlots;
 
-            net.Connect();
+            LoginScreen login = new LoginScreen();
+            login.ShowDialog();
+            while (login.DialogResult == System.Windows.Forms.DialogResult.OK) {
+                if ((login.getUsername().Trim() == "") || (login.getPassword().Trim() == "")) {
+                    MessageBox.Show("Enter your username and password");
 
+                    login.ShowDialog();
+                    continue;
+                }
+                try {
+                    net.Connect(login.getUsername(), login.getPassword());
+
+                    if (!net.isConnected) {
+                        MessageBox.Show("Cannot connect to server");
+
+                        login.ShowDialog();
+                    } else {
+                        break;
+                    }
+                } catch (Exception e) {
+                    MessageBox.Show(e.Message);
+                    Application.Exit();
+                    return;
+                }
+            }
+
+            if (login.DialogResult != System.Windows.Forms.DialogResult.OK) {
+                Application.Exit();
+
+                return;
+            }
+            
+            
             LoadResources();
 
 
@@ -422,6 +475,10 @@ namespace GameClient {
             npc.CurrentDialog = "";
 
             NPCsAvailable.Add(npc);
+        }
+
+        public void OnPlayerINfo(UInt32 command, UInt32 worldid, UInt32 reserved, String name, UInt32 lastknownx, UInt32 lastknowny) {
+
         }
 
         public void OnDialog(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -614,40 +671,40 @@ namespace GameClient {
             LoadTextures();
             LoadHero();
 
-            m_statsandslots = new Surface(@"..\..\Data\statsandslots.png");
+            m_statsandslots = new Surface(DataDir + @"statsandslots.png");
             m_statsandslots.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_infobox = new Surface(@"..\..\Data\infobox.png");
+            m_infobox = new Surface(DataDir + @"infobox.png");
             m_infobox.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_spriteNpcs = new Surface(@"..\..\Data\npcs.png");
+            m_spriteNpcs = new Surface(DataDir + @"npcs.png");
             m_spriteNpcs.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_npcDialogBox = new Surface(@"..\..\Data\npc_dialog.png");
+            m_npcDialogBox = new Surface(DataDir + @"npc_dialog.png");
             m_npcDialogBox.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_level_music = new SdlDotNet.Audio.Music(@"..\..\Data\intro_test.mp3");
-            m_DeathScreen = new Surface(@"..\..\Data\deathscreen.png");
+            m_level_music = new SdlDotNet.Audio.Music(DataDir + @"intro_test.mp3");
+            m_DeathScreen = new Surface(DataDir + @"deathscreen.png");
             m_DeathScreen.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_TooltipBox = new Surface(@"..\..\Data\tooltip.png");
+            m_TooltipBox = new Surface(DataDir + @"tooltip.png");
             m_TooltipBox.SourceColorKey = Color.FromArgb(255, 0, 255);
 
-            m_generic_icon_slot1 = new Surface(@"..\..\Data\generic_headslot.png");
+            m_generic_icon_slot1 = new Surface(DataDir + @"generic_headslot.png");
             m_generic_icon_slot1.SourceColorKey = Color.FromArgb(255, 0, 255);
-            m_generic_icon_slot2 = new Surface(@"..\..\Data\generic_bodyslot.png");
+            m_generic_icon_slot2 = new Surface(DataDir + @"generic_bodyslot.png");
             m_generic_icon_slot2.SourceColorKey = Color.FromArgb(255, 0, 255);
-            m_generic_icon_slot3 = new Surface(@"..\..\Data\generic_feetslot.png");
+            m_generic_icon_slot3 = new Surface(DataDir + @"generic_feetslot.png");
             m_generic_icon_slot3.SourceColorKey = Color.FromArgb(255, 0, 255);
-            m_generic_icon_slot4 = new Surface(@"..\..\Data\generic_weaponslot.png");
+            m_generic_icon_slot4 = new Surface(DataDir + @"generic_weaponslot.png");
             m_generic_icon_slot4.SourceColorKey = Color.FromArgb(255, 0, 255);
-            m_generic_icon_slot5 = new Surface(@"..\..\Data\generic_handsslot.png");
+            m_generic_icon_slot5 = new Surface(DataDir + @"generic_handsslot.png");
             m_generic_icon_slot5.SourceColorKey = Color.FromArgb(255, 0, 255);
 
         }
 
         private void LoadTextures() {
-            m_SpriteSheet = new Surface(@"..\..\Data\textures.png");
+            m_SpriteSheet = new Surface(DataDir + @"textures.png");
         }
 
         private void RenderActionInfo() {
@@ -1014,17 +1071,9 @@ namespace GameClient {
         }
 
         private void LoadHero() {
-            string filePath = Path.Combine("..", "..");
-            string fileDirectory = "Data";
             string fileName = "puppet.png";
-            if (File.Exists(fileName)) {
-                filePath = "";
-                fileDirectory = "";
-            } else if (File.Exists(Path.Combine(fileDirectory, fileName))) {
-                filePath = "";
-            }
 
-            string file = Path.Combine(Path.Combine(filePath, fileDirectory), fileName);
+            string file = Path.Combine(DataDir, fileName);
 
             // Load the image
             Surface image = new Surface(file);

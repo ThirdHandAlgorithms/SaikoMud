@@ -368,6 +368,7 @@ void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CComba
          tctarget->inform_combatevent(source->WorldId, target->WorldId, COMBATEVENT_DEATH, 0, &combatmsg);
       }
 
+      this->leaveCombat(target);
 
       if (target->WorldId != 0) {
          Global_World()->handleDeath( reinterpret_cast<CCharacter *>(target), reinterpret_cast<CCharacter *>(source) );

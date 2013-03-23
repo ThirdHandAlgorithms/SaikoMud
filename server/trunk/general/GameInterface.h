@@ -34,6 +34,8 @@ public:
 
    bool IsLoggedIn();
 
+   bool IsAdmin();
+
    // world
    void ReloadWorld();
    void GetTinyMap(TGFString *s);
@@ -62,6 +64,8 @@ public:
 
    // special GM actions
    bool run_teleport( long x, long y );
+
+   bool admin_teleport_player( uint32_t iWorldId, long x, long y );
 
 	// 
 	void StartCombatDummy();

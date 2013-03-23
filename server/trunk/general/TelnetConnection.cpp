@@ -487,6 +487,19 @@ void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s) {
    }
 }
 
+void CTelnetConnection::inform_playerinfo(CCharacter *c) {
+   TGFString tmp(c->name.link());
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_playerinfo, c->WorldId, 0, &tmp, c->x.get(), c->y.get());
+   }
+}
+
 void CTelnetConnection::inform_npcdialog(uint32_t iWorldId, TGFString *s) {
    TGFString tmp(s);
 
@@ -615,6 +628,29 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
          } else if ( copy.startsWith_ansi("/lo") ) {
             this->gameintf.Logout();
             bActionOk = true;
+         } else if ( copy.startsWith_ansi("/ps") ) {
+            if (this->gameintf.IsAdmin() ) {
+               Global_World()->printf_world_stats(true);
+            }
+         } else if ( copy.startsWith_ansi("/tp ") ) {
+            if (this->gameintf.IsAdmin()) {
+               TGFVector *v = GFsplit( &copy, " " );
+               if ( v->size() == 4 ) {
+                  TGFBValue pv;
+                  pv.setString(static_cast<TGFString *>(v->elementAt(1)));
+                  long iWorldId = pv.asInteger();
+                  pv.setString(static_cast<TGFString *>(v->elementAt(2)));
+                  long x = pv.asInteger();
+                  pv.setString(static_cast<TGFString *>(v->elementAt(3)));
+                  long y = pv.asInteger();
+
+                  bActionOk = this->gameintf.admin_teleport_player( iWorldId, x, y );
+               } else {
+                  bActionOk = false;
+               }
+            } else {
+               bActionOk = false;
+            }
          }
 
          if ( copy.startsWith_ansi("w") ) {
@@ -680,7 +716,16 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                }
             } else if (command == c_radar_getnearbyplayers) {
                // ...
-               bActionOk = false;
+               TGFVector v;
+               v.autoClear = false;
+               int c = this->gameintf.radar_getNearbyPlayers(&v);
+               if (c > 0) {
+                  for (int i = 0; i < c; i++) {
+                     CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
+
+                     this->inform_playerinfo(c);
+                  }
+               }
             } else if (command == c_interact_greet) {
                TGFString s;
                bActionOk = this->gameintf.interact_greet(intparam1, &s);

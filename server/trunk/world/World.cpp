@@ -229,6 +229,49 @@ bool CWorld::hasNPCsAt(long x, long y) {
    return false;
 }
 
+bool CWorld::hasPlayersAt(long x, long y) {
+   CCharacter *obj;
+   unsigned long c = this->characters.size();
+   for (unsigned long i = 0; i < c; i++) {
+      obj = static_cast<CCharacter *>( this->characters.elementAt(i) );
+      if (obj != NULL) {
+         if (obj->isAlive() && (obj->x.get() == x) && (obj->y.get() == y)) {
+            return true;
+         }
+      }
+   }
+
+   return false;
+}
+
+int CWorld::getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v) {
+   long size_w = (radius << 1) + 1;  // +1 for center
+   long size_h = (radius << 1) + 1;
+   long start_x = x - radius;
+   long start_y = y - radius;
+   long end_x = (start_x + size_w);
+   long end_y = (start_y + size_h);
+
+   int playercount = 0;
+
+   CCharacter *obj;
+   unsigned long c = this->characters.size();
+   for (unsigned long i = 0; i < c; i++) {
+      obj = static_cast<CCharacter *>( this->characters.elementAt(i) );
+      if (obj != NULL) {
+         if (obj->isAlive() &&
+             ((obj->x.get() >= start_x) && (obj->x.get() < end_x)) && 
+             ((obj->y.get() >= start_y) && (obj->y.get() < end_y))) {
+            v->addElement(obj);
+            playercount++;
+         }
+      }
+   }
+
+   return playercount;
+}
+
+
 void CWorld::preloadInteriors( long x, long y ) {
 
 }
@@ -244,7 +287,7 @@ CRoom *CWorld::getRoom( long x, long y ) {
    return static_cast<CRoom *>( rooms.elementAt(vpos) );
 }
 
-void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
+void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bool bShowCharacterPos ) {
    long size_w = (radius << 1) + 1;  // +1 for center
    long size_h = (radius << 1) + 1;
    long start_x = x - radius;
@@ -265,10 +308,10 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
             if ( room != NULL ) {
                if (this->hasNPCsAt(j,i)) {
                   line.append(static_cast<char>(97 + room->envtype));
-               } else {
+               } else if (bShowCharacterPos) {
                   line.append_ansi("@");
                }
-            } else {
+            } else if (bShowCharacterPos) {
                line.append_ansi("@");
             }
          } else {
@@ -291,8 +334,8 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius ) {
    }
 }
 
-CCharacter *CWorld::getCharacter(uint32_t id) {
-   return static_cast<CCharacter *>(worldids.elementAt(id));
+CCharacter *CWorld::getCharacter(uint32_t iWorldId) {
+   return static_cast<CCharacter *>(worldids.elementAt(iWorldId));
 }
 
 CItem *CWorld::getItem(uint32_t iItemId) {

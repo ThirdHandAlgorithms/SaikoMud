@@ -5,20 +5,18 @@ using System.Text;
 using System.Threading;
 
 using System.Net.Sockets;
+using System.Xml;
 
 namespace GameClient {
     class GameNet {
-        private string host = "127.0.0.1";//"www.saikosoft.net";
+        private string host = "";
         private int port = 23;
 
         private TcpClient clientsock;
         private NetworkStream stream;
 
-        public String Username = "testaccount";
-        public String Password = "test";
-
         private Thread EventHandler;
-        private bool isConnected = false;
+        public bool isConnected = false;
 
         // callbacks
         public delegate void GameNetCallback(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str);
@@ -40,6 +38,7 @@ namespace GameClient {
         public event GameNetExtCallback iteminfo;
         public event GameNetExtCallback itemstats;
         public event GameNetDynCallback gearslots;
+        public event GameNetExtCallback playerinfo;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -93,6 +92,8 @@ namespace GameClient {
 
         public const UInt32 c_response_gearslots = 0x80400001;
 
+        public const UInt32 c_response_playerinfo = 0x70210001;
+
         public const UInt32 COMBATEVENT_MISS = 1;
         public const UInt32 COMBATEVENT_HIT = 2;
         public const UInt32 COMBATEVENT_CRIT = 3;
@@ -105,6 +106,20 @@ namespace GameClient {
 
         public GameNet() {
             EventHandler = new Thread(new ThreadStart(ThreadProc));
+        }
+
+
+        public void LoadSettings(String sFile) {
+            XmlReader reader = XmlReader.Create(sFile);
+            while (reader.Read()) {
+                if (reader.Name == "server") {
+                    host = reader.GetAttribute("hostname");
+                    string s = reader.GetAttribute("port");
+                    if (s != null) {
+                        port = int.Parse(s);
+                    }
+                }
+            }
         }
 
         public void ExtractAndProcess(ref byte[] sData) {
@@ -290,6 +305,8 @@ namespace GameClient {
                     itemstats.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_gearslots) {
                     gearslots.Invoke(command, intarr, strarr);
+                } else if (command == c_response_playerinfo) {
+                    playerinfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 }
                 
             } catch {
@@ -319,8 +336,9 @@ namespace GameClient {
             }
         }
 
-        public bool Login() {
-            SendToServer("/l " + Username + " " + Password + "\r\n");
+        public bool Login(String sUsername, String sPassword) {
+            // plain-text baby!
+            SendToServer("/l " + sUsername + " " + sPassword + "\r\n");
             
 
             byte[] LastActionMessage = ReceiveFromServer();
@@ -332,7 +350,7 @@ namespace GameClient {
                 return true;
             }
 
-            return false;
+            throw new Exception(System.Text.Encoding.ASCII.GetString(LastActionMessage));
         }
 
         public void SwitchToBinaryMode() {
@@ -518,7 +536,7 @@ namespace GameClient {
             stream.Write(data, 0, data.Length);
         }
 
-        public void Connect() {
+        public void Connect(String sUsername, String sPassword) {
             try {
                 isConnected = false;
 
@@ -530,7 +548,7 @@ namespace GameClient {
                     data = ReceiveFromServer();
                 }
 
-                if (!Login()) {
+                if (!Login(sUsername, sPassword)) {
                     throw new Exception("Cannot login");
                 }
 
