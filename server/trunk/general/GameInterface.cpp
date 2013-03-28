@@ -103,13 +103,16 @@ void CGameInterface::ReloadWorld() {
    Global_World()->reloadFromDatabase(Global_DBConnection());
 }
 
-void CGameInterface::GetTinyMap(TGFString *s) {
+void CGameInterface::GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY) {
    this->DoChecks();
 
    if (this->loggedInCharacter == NULL) {
       Global_World()->echoAsciiMap(s, 0, 0, 20, false);
    } else {
-      Global_World()->echoAsciiMap(s, this->loggedInCharacter->x.get(), this->loggedInCharacter->y.get(), 5);
+      *iCurrentSelfX = this->loggedInCharacter->x.get();
+      *iCurrentSelfY = this->loggedInCharacter->y.get();
+
+      Global_World()->echoAsciiMap(s, *iCurrentSelfX, *iCurrentSelfY, 5, true, this->loggedInCharacter);
    }
 }
 
@@ -375,7 +378,7 @@ int CGameInterface::radar_getNearbyPlayers(TGFVector *v) {
    long x = this->loggedInCharacter->x.get();
    long y = this->loggedInCharacter->y.get();
 
-   return Global_World()->getNearbyPlayers(x, y, 5, v);
+   return Global_World()->getNearbyPlayers(x, y, 5, v, this->loggedInCharacter);
 }
 
 

@@ -26,7 +26,7 @@ namespace GameClient {
 
         public event GameNetCallback actioninfo;
         public event GameNetCallback roominfo;
-        public event GameNetCallback mapinfo;
+        public event GameNetExtCallback mapinfo;
         public event GameNetCallback chatmsginfo;
         public event GameNetCallback questtitlesinfo;
         public event GameNetCallback questtextinfo;
@@ -57,6 +57,7 @@ namespace GameClient {
 
         public const UInt32 c_radar_getnearbynpcs = 0x00000101;
         public const UInt32 c_radar_getnearbyplayers = 0x00000102;
+        public const UInt32 c_radar_getmap = 0x00000109;
 
         public const UInt32 c_self_getallstats = 0x00000201;
 
@@ -66,7 +67,7 @@ namespace GameClient {
         // responses
         public const UInt32 c_response_lastactioninfo = 0x30010000;
         public const UInt32 c_response_roominfo = 0x30020000;
-        public const UInt32 c_response_asciimap = 0x10030000;
+        public const UInt32 c_response_asciimap = 0x30030000;
 
         public const UInt32 c_event_earnsxp = 0x20040001;
         public const UInt32 c_event_combatmsg = 0x70040002;
@@ -272,7 +273,7 @@ namespace GameClient {
                 } else if (command == c_response_roominfo) {
                     roominfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_response_asciimap) {
-                    mapinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                    mapinfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_chatmessage) {
                     chatmsginfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_response_questtitle) {

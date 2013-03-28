@@ -71,6 +71,8 @@ public:
    bool isInCombat();
    bool isAlive();
 
+   bool isTargetAlive();
+
    void setLevel( unsigned int l );
    void onTimer( TGFFreeable *obj );
 

@@ -23,6 +23,7 @@
 
 #define c_radar_getnearbynpcs 0x00000101
 #define c_radar_getnearbyplayers 0x00000102
+#define c_radar_getmap 0x00000109
 
 #define c_self_getallstats 0x00000201
 
@@ -33,7 +34,7 @@
 
 #define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
-#define c_response_asciimap 0x10030000
+#define c_response_asciimap 0x30030000
 
 #define c_event_earnsxp 0x20040001
 #define c_event_combatmsg 0x70040002

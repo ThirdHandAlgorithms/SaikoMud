@@ -47,7 +47,7 @@ protected:
    // TGFVector items;
 
    bool hasNPCsAt(long x, long y);
-   bool hasPlayersAt(long x, long y);
+   bool hasPlayersAt(long x, long y, CCharacter *oExcludeChar);
 
    void loadNeededQuests(CNPCharacter *cNpc);
 
@@ -66,7 +66,7 @@ public:
    void preloadInteriors( long x, long y );
 
    int getNpcsInRoom_fromdb(long x, long y, TGFVector *v);
-   int getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v);
+   int getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v, CCharacter *oExcludeChar);
 
    CNPCharacter *getNpcByName(TGFString *s);
 
@@ -82,7 +82,7 @@ public:
    void onRespawnTimerCharacter(TGFFreeable *c);
    void handleDeath(CCharacter *cFor, CCharacter *cKilledBy);
 
-   void echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bool bShowCharacterPos = true );
+   void echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bool bShowCharacterPos = true, CCharacter *self = NULL );
 
    uint32_t generateUniqueWorldId(CCharacter *c);
    void unloadCharacter(CCharacter *c);

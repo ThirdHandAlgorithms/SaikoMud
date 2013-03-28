@@ -229,12 +229,12 @@ bool CWorld::hasNPCsAt(long x, long y) {
    return false;
 }
 
-bool CWorld::hasPlayersAt(long x, long y) {
+bool CWorld::hasPlayersAt(long x, long y, CCharacter *oExcludeChar) {
    CCharacter *obj;
    unsigned long c = this->characters.size();
    for (unsigned long i = 0; i < c; i++) {
       obj = static_cast<CCharacter *>( this->characters.elementAt(i) );
-      if (obj != NULL) {
+      if ((obj != NULL) && (obj != oExcludeChar)) {
          if (obj->isAlive() && (obj->x.get() == x) && (obj->y.get() == y)) {
             return true;
          }
@@ -244,7 +244,7 @@ bool CWorld::hasPlayersAt(long x, long y) {
    return false;
 }
 
-int CWorld::getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v) {
+int CWorld::getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v, CCharacter *oExcludeChar) {
    long size_w = (radius << 1) + 1;  // +1 for center
    long size_h = (radius << 1) + 1;
    long start_x = x - radius;
@@ -259,7 +259,7 @@ int CWorld::getNearbyPlayers(long x, long y, unsigned int radius, TGFVector *v) 
    for (unsigned long i = 0; i < c; i++) {
       obj = static_cast<CCharacter *>( this->characters.elementAt(i) );
       if (obj != NULL) {
-         if (obj->isAlive() &&
+         if ((obj != oExcludeChar) && obj->isAlive() &&
              ((obj->x.get() >= start_x) && (obj->x.get() < end_x)) && 
              ((obj->y.get() >= start_y) && (obj->y.get() < end_y))) {
             v->addElement(obj);
@@ -287,7 +287,7 @@ CRoom *CWorld::getRoom( long x, long y ) {
    return static_cast<CRoom *>( rooms.elementAt(vpos) );
 }
 
-void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bool bShowCharacterPos ) {
+void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bool bShowCharacterPos, CCharacter *self ) {
    long size_w = (radius << 1) + 1;  // +1 for center
    long size_h = (radius << 1) + 1;
    long start_x = x - radius;
@@ -308,6 +308,8 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bo
             if ( room != NULL ) {
                if (this->hasNPCsAt(j,i)) {
                   line.append(static_cast<char>(97 + room->envtype));
+               } else if (this->hasPlayersAt(j, i, self)) {
+                  line.append(static_cast<char>(97 + room->envtype));
                } else if (bShowCharacterPos) {
                   line.append_ansi("@");
                }
@@ -319,6 +321,8 @@ void CWorld::echoAsciiMap( TGFString *s, long x, long y, unsigned int radius, bo
             if ( room != NULL ) {
                if (this->hasNPCsAt(j,i)) {
                   line.append(static_cast<char>((65 + room->envtype)));
+               } else if (this->hasPlayersAt(j, i, self)) {
+                  line.append(static_cast<char>(65 + room->envtype));
                } else {
                   line.append(static_cast<char>((48 + room->envtype)));
                }

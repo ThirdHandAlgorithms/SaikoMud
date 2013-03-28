@@ -345,7 +345,8 @@ void CTelnetConnection::inform_lastaction() {
 
 void CTelnetConnection::inform_map() {
    TGFString tmp;
-   this->gameintf.GetTinyMap(&tmp);
+   uint32_t x, y;
+   this->gameintf.GetTinyMap(&tmp, &x, &y);
 
    if (!bBinaryMode) {
       if (tmp.getLength() > 0) {
@@ -353,7 +354,7 @@ void CTelnetConnection::inform_map() {
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_asciimap, 0, 0, &tmp);
+      this->sendBin(c_response_asciimap, x, y, &tmp);
    }
 }
 
@@ -726,6 +727,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                      this->inform_playerinfo(c);
                   }
                }
+            } else if (command == c_radar_getmap) {
+               bMovementActionOk = true;
             } else if (command == c_interact_greet) {
                TGFString s;
                bActionOk = this->gameintf.interact_greet(intparam1, &s);
@@ -774,6 +777,17 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             if (bMovementActionOk) {
                this->inform_currentroom();
                this->inform_map();
+
+               TGFVector v;
+               v.autoClear = false;
+               int c = this->gameintf.radar_getNearbyPlayers(&v);
+               if (c > 0) {
+                  for (int i = 0; i < c; i++) {
+                     CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
+
+                     this->inform_playerinfo(c);
+                  }
+               }
             }
          }
       }

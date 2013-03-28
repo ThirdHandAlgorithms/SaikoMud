@@ -13,6 +13,7 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Xml;
 using System.Windows.Forms;
+using System.Timers;
 
 namespace GameClient {
 
@@ -45,12 +46,17 @@ namespace GameClient {
     class CCharacter : CBaseStats {
         public String Nickname = "";
         public UInt32 WorldID = 0;
+        public UInt32 X;
+        public UInt32 Y;
 
         public CCharSlot slot1 = null;
         public CCharSlot slot2 = null;
         public CCharSlot slot3 = null;
         public CCharSlot slot4 = null;
         public CCharSlot slot5 = null;
+    };
+
+    class CAnotherPlayer : CCharacter {
     };
 
     class CCharSelf : CCharacter {
@@ -114,6 +120,8 @@ namespace GameClient {
         private Rectangle Slot4Area = new Rectangle();
         private Rectangle Slot5Area = new Rectangle();
 
+        private System.Timers.Timer tmrPullMap = null;
+
         private UInt32 CurrentNPC = 0;
 
         private GameNet net;
@@ -126,6 +134,7 @@ namespace GameClient {
         private byte RoomEnvType = 0;
 
         private CCharSelf CharSelf = new CCharSelf();
+        private List<CAnotherPlayer> CharactersHere = new List<CAnotherPlayer>();
         private CItem LatestItem = new CItem();
 
         private List<CQuest> QuestsAvailable = new List<CQuest>();
@@ -160,6 +169,16 @@ namespace GameClient {
 
         static void Main(string[] args) {
             new Program();
+        }
+
+        private CAnotherPlayer FindChar(UInt32 iWorldId) {
+            foreach ( var c in CharactersHere ) {
+                if (c.WorldID == iWorldId) {
+                    return c;
+                }
+            }
+
+            return null;
         }
 
         private void LoadSettings(String sFile) {
@@ -281,6 +300,8 @@ namespace GameClient {
             net.npcinfo += OnNPCInfo;
             net.dialog += OnDialog;
 
+            net.playerinfo += OnPlayerInfo;
+
             net.earnsxp += OnEarnXP;
             net.statsinfo += OnStatsInfo;
 
@@ -325,6 +346,12 @@ namespace GameClient {
             
             LoadResources();
 
+            tmrPullMap = new System.Timers.Timer(750);
+            tmrPullMap.Elapsed += OnPullMapTimer;
+            tmrPullMap.Start();
+
+
+            m_level_music.Play(1);
 
             Events.Fps = 60;
             Events.Tick += new EventHandler<TickEventArgs>(Events_Tick);
@@ -333,9 +360,10 @@ namespace GameClient {
             Events.KeyboardUp += new EventHandler<KeyboardEventArgs>(Events_KeyboardUp);
 
             Events.Run();
+        }
 
-            
-            m_level_music.Play(1);
+        public void OnPullMapTimer(object source, ElapsedEventArgs e) {
+            net.SendBinToServer(GameNet.c_radar_getmap, 0, 0, "");
         }
 
         public void OnActionInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -353,10 +381,15 @@ namespace GameClient {
             frmDebug.addMessage(str + crlf[0]);
         }
 
-        public void OnMapInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+        public void OnMapInfo(UInt32 command, UInt32 iSelfX, UInt32 iSelfY, String str, UInt32 intparam3, UInt32 intparam4) {
             StrMapInfo = str;
 
             //frmDebug.addMessage(str + crlf);
+
+            if (CharSelf != null) {
+                CharSelf.X = iSelfX;
+                CharSelf.Y = iSelfY;
+            }
 
             arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
         }
@@ -477,8 +510,16 @@ namespace GameClient {
             NPCsAvailable.Add(npc);
         }
 
-        public void OnPlayerINfo(UInt32 command, UInt32 worldid, UInt32 reserved, String name, UInt32 lastknownx, UInt32 lastknowny) {
-
+        public void OnPlayerInfo(UInt32 command, UInt32 worldid, UInt32 reserved, String name, UInt32 lastknownx, UInt32 lastknowny) {
+            CAnotherPlayer c = FindChar(worldid);
+            if (c == null) {
+                c = new CAnotherPlayer();
+                CharactersHere.Add(c);
+            }
+            c.WorldID = worldid;
+            c.Nickname = name;
+            c.X = lastknownx;
+            c.Y = lastknowny;
         }
 
         public void OnDialog(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -1190,6 +1231,18 @@ namespace GameClient {
                 case Key.KeypadMultiply:
                     if (this.NPCsAvailable.Count() > 0) {
                         net.SendBinToServer(GameNet.c_attack_start, this.NPCsAvailable[0].WorldID, 0, "");
+                    } else if (this.CharactersHere.Count() > 0) {
+                        CCharacter attackthischar = null;
+                        foreach (var c in this.CharactersHere) {
+                            if ((c.X == CharSelf.X) && (c.Y == CharSelf.Y)) {
+                                attackthischar = c;
+                                break;
+                            }
+                        }
+
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_attack_start, attackthischar.WorldID, 0, "");
+                        }
                     }
                     break;
                 case Key.Return:
