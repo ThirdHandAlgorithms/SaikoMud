@@ -68,9 +68,18 @@ bool CCombatant::isAlive() {
    return ( this->currenthealthpool.get() != 0 );
 }
 
+bool CCombatant::isTargetAlive() {
+   if ( this->maintarget != NULL ) {
+      return this->maintarget->isAlive();
+   }
+
+   return false;
+}
+
 void CCombatant::setLevel( unsigned int l ) {
    level.internalSet( l );
-   maxhealthpool.set( l * 100 );
+   // max hp = 100 base + 10hp per level
+   maxhealthpool.set( 100 + (l - 1) * 10 );
 }
 
 void CCombatant::onTimer( TGFFreeable *obj ) {
@@ -164,15 +173,18 @@ int CCombatant::affectWithDamage( int combatevent, int amount ) {
    if ( this->currenthealthpool.get() > 0 ) {
       int protection = this->currentstats.protection.get();
    
-      // 200 protection max per level
-      int protectioncap = this->level.get() * 200;
+      // 100 protection max per level
+      int protectioncap = this->level.get() * 100;
       protection = min(protection, protectioncap);
    
       // cap equals 80% mitigation
       double protectionperc = 0.80 / protectioncap * protection;
 
+      // test max armor
+      // protectionperc = 0.80;
+
       int curhp = this->currenthealthpool.get();
-      aftermitigation = min( floor(amount * (1 - protectionperc)), curhp );
+      aftermitigation = min( floor(amount * (1.0 - protectionperc)), curhp );
 
       this->currenthealthpool.set( curhp - aftermitigation );
    }
@@ -232,18 +244,25 @@ CCombat::~CCombat() {
 void CCombat::execute() {
    unsigned int alive = 0;
 
+   unsigned int targetsdead = 0;
+
    unsigned int c = combatants.size();
    for ( unsigned int i = 0; i < c; i++ ) {
       CCombatant *obj = static_cast<CCombatant *>( combatants.elementAt(i) );
       if ( obj != NULL ) {
          if ( obj->isAlive() ) {
             alive++;
-            obj->combatcycle();
+            if (obj->isTargetAlive()) {
+               obj->combatcycle();
+            } else {
+               targetsdead++;
+            }
          }
       }
    }
 
-   if ( alive <= 1 ) {
+   // stop combat when everyone's target is dead, or when only 1 or 0 people are still alive
+   if ( (alive <= 1) || (alive <= targetsdead) ) {
       this->stop();
 
       printf("stopping combat\n");

@@ -38,7 +38,7 @@ public:
 
    // world
    void ReloadWorld();
-   void GetTinyMap(TGFString *s);
+   void GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY);
 
    uint32_t GetLastActionInfo(TGFString *s);
    BYTE GetRoomInfo(TGFString *s);
