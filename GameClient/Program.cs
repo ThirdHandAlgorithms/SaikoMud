@@ -38,8 +38,8 @@ namespace GameClient {
     class CPositionedChar : CBaseStats {
         public UInt32 WorldID = 0;
         public String Nickname = "";
-        public UInt32 X;
-        public UInt32 Y;
+        public long X;
+        public long Y;
         public bool isDead = false;
     };
 
@@ -423,8 +423,8 @@ namespace GameClient {
             //frmDebug.addMessage(str + crlf);
 
             if (CharSelf != null) {
-                CharSelf.X = iSelfX;
-                CharSelf.Y = iSelfY;
+                CharSelf.X = (Int32)iSelfX;
+                CharSelf.Y = (Int32)iSelfY;
             }
 
             arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
@@ -579,8 +579,8 @@ namespace GameClient {
         public void OnNPCInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str, UInt32 currentx, UInt32 currenty) {
             CNPC npc = FindOrAddNPC(intparam1);
             npc.Nickname = str;
-            npc.X = currentx;
-            npc.Y = currenty;
+            npc.X = (Int32)currentx;
+            npc.Y = (Int32)currenty;
 
             NPCsAvailable.Add(npc);
         }
