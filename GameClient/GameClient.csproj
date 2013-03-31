@@ -149,6 +149,9 @@
     <None Include="Properties\app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Data\deathscreen.png" />
+    <Content Include="Data\forest_env.png" />
+    <Content Include="Data\gear.png" />
     <Content Include="Data\generic_bodyslot.png" />
     <Content Include="Data\generic_feetslot.png" />
     <Content Include="Data\generic_handsslot.png" />
@@ -160,6 +163,7 @@
     <Content Include="Data\magnifybutton.png" />
     <Content Include="Data\mountain_env.png" />
     <Content Include="Data\npcs.png" />
+    <Content Include="Data\npc_dialog.png" />
     <Content Include="Data\npc_puppet.png" />
     <Content Include="Data\player_puppet.png" />
     <Content Include="Data\puppet.png" />

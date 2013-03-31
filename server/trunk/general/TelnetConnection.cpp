@@ -715,7 +715,10 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                   for (int i = 0; i < c; i++) {
                      CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
 
-                     this->inform_npcinfo( c->WorldId, c->name.link(), c->x.get(), c->y.get() );
+                     int sx = c->x.get();
+                     int sy = c->y.get();
+
+                     this->inform_npcinfo( c->WorldId, c->name.link(), (uint32_t)sx, (uint32_t)sy );
                   }
                }
             } else if (command == c_radar_getnearbyplayers) {
