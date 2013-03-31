@@ -30,7 +30,7 @@ namespace GameClient {
         public event GameNetCallback chatmsginfo;
         public event GameNetCallback questtitlesinfo;
         public event GameNetCallback questtextinfo;
-        public event GameNetCallback npcinfo;
+        public event GameNetExtCallback npcinfo;
         public event GameNetCallback dialog;
         public event GameNetCallback earnsxp;
         public event GameNetCallback statsinfo;
@@ -82,7 +82,7 @@ namespace GameClient {
 
         public const UInt32 c_response_chatmessage = 0x30100000;
 
-        public const UInt32 c_response_npcinfo = 0x30110000;
+        public const UInt32 c_response_npcinfo = 0x70110000;
         public const UInt32 c_response_dialog = 0x30120000;
 
         public const UInt32 c_response_questtitle = 0x30130000;
@@ -281,7 +281,7 @@ namespace GameClient {
                 } else if (command == c_response_questtext) {
                     questtextinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_response_npcinfo) {
-                    npcinfo.Invoke(command, intparam1, intparam2, sDataStr);
+                    npcinfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_dialog) {
                     dialog.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_event_earnsxp) {
@@ -530,8 +530,10 @@ namespace GameClient {
 
                 i += 4;
 
-                Byte[] bytemsg = System.Text.Encoding.UTF8.GetBytes(message);
-                Buffer.BlockCopy(bytemsg, 0, data, i, bytemsg.Length);
+                if (strlen > 0) {
+                    Byte[] bytemsg = System.Text.Encoding.UTF8.GetBytes(message);
+                    Buffer.BlockCopy(bytemsg, 0, data, i, bytemsg.Length);
+                }
             }
 
             stream.Write(data, 0, data.Length);
