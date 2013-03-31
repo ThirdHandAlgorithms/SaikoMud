@@ -48,7 +48,7 @@
 #define c_event_statinfo_protection 0x20040107
 
 
-#define c_response_npcinfo 0x30110000
+#define c_response_npcinfo 0x70110000
 #define c_response_dialog 0x30120000
 
 #define c_response_questtitle 0x30130000
@@ -85,7 +85,7 @@ protected:
    void inform_lastaction();
    void inform_questtitle(uint32_t iQuestId, TGFString *s);
    void inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp);
-   void inform_npcinfo(uint32_t iWorldId, TGFString *s);
+   void inform_npcinfo(uint32_t iWorldId, TGFString *s, uint32_t x, uint32_t y);
    void inform_npcdialog(uint32_t iWorldId, TGFString *s);
    bool inform_iteminfo(uint32_t iItemId);
    bool inform_itemstats(uint32_t iItemId);

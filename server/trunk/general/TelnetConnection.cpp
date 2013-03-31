@@ -299,11 +299,13 @@ bool CTelnetConnection::decodeNextBinMessageInBuffer(uint32_t *command, uint32_t
 
          i += 4;
 
-         if ((i + iStrLen) < iBufLen) {
+         if ((i + iStrLen) > iBufLen) {
             return false;
          }
 
-         s->setValue(buffer.getPointer(i), iStrLen);
+         if (iStrLen > 0) {
+            s->setValue(buffer.getPointer(i), iStrLen);
+         }
       }
 
       buffer.remove(0, i + iStrLen - 1);
@@ -475,7 +477,7 @@ void CTelnetConnection::inform_questtext(uint32_t iQuestId, TGFString *s, long r
    }
 }
 
-void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s) {
+void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s, uint32_t x, uint32_t y) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -484,7 +486,7 @@ void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s) {
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_npcinfo, iWorldId, 0, &tmp);
+      this->sendBin(c_response_npcinfo, iWorldId, 0, &tmp, x, y);
    }
 }
 
@@ -682,6 +684,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             printf("decodeNextBinMessageInBuffer -> %08x\n", command);
 
             bool bMovementActionOk = false;
+            bool bNoRoomInfo = false;
 
             if (command == c_run_walkbackwards) {
                bActionOk = this->gameintf.run_walkbackwards();
@@ -712,7 +715,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                   for (int i = 0; i < c; i++) {
                      CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
 
-                     this->inform_npcinfo( c->WorldId, c->name.link() );
+                     this->inform_npcinfo( c->WorldId, c->name.link(), c->x.get(), c->y.get() );
                   }
                }
             } else if (command == c_radar_getnearbyplayers) {
@@ -728,7 +731,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                   }
                }
             } else if (command == c_radar_getmap) {
-               bMovementActionOk = true;
+               bActionOk = true;
+               bNoRoomInfo = true;
             } else if (command == c_interact_greet) {
                TGFString s;
                bActionOk = this->gameintf.interact_greet(intparam1, &s);
@@ -775,7 +779,9 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             }
 
             if (bMovementActionOk) {
-               this->inform_currentroom();
+               if (!bNoRoomInfo) {
+                  this->inform_currentroom();
+               }
                this->inform_map();
 
                TGFVector v;

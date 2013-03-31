@@ -23,12 +23,6 @@ namespace GameClient {
         public String Text;
     };
 
-    class CNPC {
-        public UInt32 WorldID;
-        public String Name;
-        public String CurrentDialog;
-    };
-
     class CBaseStats {
         public UInt32 strength = 0;
         public UInt32 energy = 0;
@@ -39,16 +33,21 @@ namespace GameClient {
         public UInt32 slot_id = 0;
         public UInt32 item_id = 0;
         public String item_name = "";
-
-        public CItem cacheditem = null;
     }
 
-    class CCharacter : CBaseStats {
-        public String Nickname = "";
+    class CPositionedChar : CBaseStats {
         public UInt32 WorldID = 0;
+        public String Nickname = "";
         public UInt32 X;
         public UInt32 Y;
+        public bool isDead = false;
+    };
 
+    class CNPC : CPositionedChar {
+        public String CurrentDialog;
+    };
+
+    class CCharacter : CPositionedChar {
         public CCharSlot slot1 = null;
         public CCharSlot slot2 = null;
         public CCharSlot slot3 = null;
@@ -78,6 +77,8 @@ namespace GameClient {
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
 
+        private bool isZoomedIn = false;
+
         // todo: why am i using m_, what kind of shitty standard is that??
         private Surface m_SpriteSheet;
         private Surface m_vidsurf;
@@ -88,6 +89,23 @@ namespace GameClient {
         private Surface m_DeathScreen;
         private Surface m_TooltipBox;
         private Music m_level_music;
+        private Surface m_MagnifyButton;
+
+        private Surface m_SandEnv;
+        private Surface m_WaterEnv;
+        private Surface m_ForestEnv;
+        private Surface  m_GrassEnv;
+        private Surface m_MountainEnv;
+        private Surface m_StoneEnv;
+
+        private AnimatedSprite m_SpriteNPCPuppet;
+        private AnimatedSprite m_SpritePlayerPuppet;
+
+        private Surface BufferSurface;
+
+        private byte envtex_east = 0;
+        private byte envtex_north = 0;
+        private byte envtex_west = 0;
 
         private Rectangle MapArea = new Rectangle();
         private Rectangle ActionInfoArea = new Rectangle();
@@ -103,6 +121,8 @@ namespace GameClient {
         private Rectangle NPCDialogQuestTextArea = new Rectangle();
 
         private Rectangle DeathMessageArea = new Rectangle();
+
+        private Rectangle MagnifyButtonArea = new Rectangle();
 
         private Point ToolTipLocation = new Point();
 
@@ -129,13 +149,16 @@ namespace GameClient {
         private String StrActionInfo = "";
         private DateTime LastActionTime = DateTime.Now;
 
+        private DateTime LastItemRequest = DateTime.MinValue;
+
         private String StrMapInfo = "";
         private String StrRoomInfo = "";
         private byte RoomEnvType = 0;
 
         private CCharSelf CharSelf = new CCharSelf();
         private List<CAnotherPlayer> CharactersHere = new List<CAnotherPlayer>();
-        private CItem LatestItem = new CItem();
+        private List<CItem> ItemCache = new List<CItem>();
+        private CItem ToolTipItem = null;
 
         private List<CQuest> QuestsAvailable = new List<CQuest>();
         private List<CNPC> NPCsAvailable = new List<CNPC>();
@@ -153,6 +176,7 @@ namespace GameClient {
         private SdlDotNet.Graphics.Font font_questtext;
         private SdlDotNet.Graphics.Font font_questtexttitle;
         private SdlDotNet.Graphics.Font font_iteminfo;
+        private SdlDotNet.Graphics.Font font_chartitle;
 
         private String DataDir = @"..\..\Data\";
 
@@ -206,6 +230,8 @@ namespace GameClient {
             Video.WindowIcon();
             Video.WindowCaption = "SaikoMUD GameClient";
 
+            BufferSurface = new Surface(m_vidsurf.Width, m_vidsurf.Height);
+
             frmDebug = new Debug();
             if (showdebug) {
                 frmDebug.Show();
@@ -218,6 +244,8 @@ namespace GameClient {
             font_questtext = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 14);
 
             font_iteminfo = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 14);
+
+            font_chartitle = new SdlDotNet.Graphics.Font(windir + "\\Fonts\\Comic.ttf", 10);
 
             ActionInfoArea.X = 0;
             ActionInfoArea.Y = 0;
@@ -242,7 +270,12 @@ namespace GameClient {
 
             InfoBoxArea.X = m_vidsurf.Width - 550;
             InfoBoxArea.Y = 25 + 245;
-            
+
+            MagnifyButtonArea.X = SlotsAndStatsArea.X;
+            MagnifyButtonArea.Y = Video.Screen.Height - 70;
+            MagnifyButtonArea.Width = 63;
+            MagnifyButtonArea.Height = 63;
+
             RoomInfoTextArea.X = InfoBoxArea.X + 10;
             RoomInfoTextArea.Y = InfoBoxArea.Y + 10;
 
@@ -359,6 +392,9 @@ namespace GameClient {
             Events.KeyboardDown += new EventHandler<KeyboardEventArgs>(Events_KeyboardDown);
             Events.KeyboardUp += new EventHandler<KeyboardEventArgs>(Events_KeyboardUp);
 
+            Events.MouseButtonUp += new EventHandler<MouseButtonEventArgs>(Events_MouseButtonUp);
+            Events.MouseMotion += new EventHandler<MouseMotionEventArgs>(Events_MouseMotion);
+
             Events.Run();
         }
 
@@ -373,7 +409,7 @@ namespace GameClient {
                 CharSelf.WorldID = intparam1;
 
                 net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
-                //net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");    // todo: bugfix communication first
+                net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
             }
 
             LastActionTime = DateTime.Now;
@@ -467,26 +503,44 @@ namespace GameClient {
 
         }
 
+        public void CacheItemInfo(CItem item) {
+            this.ItemCache.Add(item);
+        }
+
+        public CItem FindItemInCache(UInt32 itemid) {
+            foreach (var item in this.ItemCache) {
+                if (item.Id == itemid) {
+                    return item;
+                }
+            }
+
+            return null;
+        }
+
         public void OnItemInfo(UInt32 command, UInt32 itemid, UInt32 reserved, String sItemNameAndDescription, UInt32 iType, UInt32 iSlot) {
             // sItemNameAndDescription separated by |
 
+            CItem obj = null;
+
             var arr = sItemNameAndDescription.Split('|');
             if (arr.Length == 2) {
-                LatestItem.Id = itemid;
-                LatestItem.Name = arr[0];
-                LatestItem.Description = PrepareStringForDisplay(arr[1], font_iteminfo, 200);
-                LatestItem.Type = iType;
-                LatestItem.Slot = iSlot;
-            } else {
-                LatestItem.Id = 0;
+                obj = new CItem();
+                obj.Id = itemid;
+                obj.Name = arr[0];
+                obj.Description = PrepareStringForDisplay(arr[1], font_iteminfo, 200);
+                obj.Type = iType;
+                obj.Slot = iSlot;
+
+                CacheItemInfo(obj);
             }
         }
 
         public void OnItemStatsInfo(UInt32 command, UInt32 itemid, UInt32 strength, String sItemNameAndDescription, UInt32 energy, UInt32 protection) {
-            if (itemid == LatestItem.Id) {
-                LatestItem.strength = strength;
-                LatestItem.energy = energy;
-                LatestItem.protection = protection;
+            CItem item = FindItemInCache(itemid);
+            if (item != null) {
+                item.strength = strength;
+                item.energy = energy;
+                item.protection = protection;
             }
         }
 
@@ -501,11 +555,32 @@ namespace GameClient {
             net.SendBinToServer(GameNet.c_radar_getnearbynpcs, 0, 0, "");
         }
 
-        public void OnNPCInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
-            CNPC npc = new CNPC();
-            npc.WorldID = intparam1;
-            npc.Name = str;
-            npc.CurrentDialog = "";
+        public CNPC FindKnownNPC(UInt32 iWorldId) {
+            foreach (CNPC npc in NPCsAvailable) {
+                if (npc.WorldID == iWorldId) {
+                    return npc;
+                }
+            }
+
+            return null;
+        }
+
+        public CNPC FindOrAddNPC(UInt32 iWorldID) {
+            CNPC npcobj = FindKnownNPC(iWorldID);
+            if (npcobj == null) {
+                npcobj = new CNPC();
+                npcobj.WorldID = iWorldID;
+                npcobj.CurrentDialog = "";
+            }
+
+            return npcobj;
+        }
+
+        public void OnNPCInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str, UInt32 currentx, UInt32 currenty) {
+            CNPC npc = FindOrAddNPC(intparam1);
+            npc.Nickname = str;
+            npc.X = currentx;
+            npc.Y = currenty;
 
             NPCsAvailable.Add(npc);
         }
@@ -529,16 +604,6 @@ namespace GameClient {
                     break;
                 }
             }
-        }
-
-        public CNPC GetKnownNPC(UInt32 iWorldId) {
-            foreach (CNPC npc in NPCsAvailable) {
-                if (npc.WorldID == iWorldId) {
-                    return npc;
-                }
-            }
-
-            return null;
         }
 
         public void OnQuestTitleInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
@@ -742,26 +807,56 @@ namespace GameClient {
             m_generic_icon_slot5 = new Surface(DataDir + @"generic_handsslot.png");
             m_generic_icon_slot5.SourceColorKey = Color.FromArgb(255, 0, 255);
 
+            m_MagnifyButton = new Surface(DataDir + @"magnifybutton.png");
+            m_MagnifyButton.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_SpriteNPCPuppet = new AnimatedSprite();
+            Surface surf = new Surface(DataDir + @"npc_puppet.png");
+            surf.SourceColorKey = Color.FromArgb(255, 0, 255);
+            AnimationCollection col = new AnimationCollection();
+            col.Add(surf);
+            m_SpriteNPCPuppet.Animations.Add("idle", col);
+
+            m_SpritePlayerPuppet = new AnimatedSprite();
+            surf = new Surface(DataDir + @"player_puppet.png");
+            surf.SourceColorKey = Color.FromArgb(255, 0, 255);
+            col = new AnimationCollection();
+            col.Add(surf);
+            m_SpritePlayerPuppet.Animations.Add("idle", col);
         }
 
         private void LoadTextures() {
             m_SpriteSheet = new Surface(DataDir + @"textures.png");
+            m_SpriteSheet.SourceColorKey = Color.FromArgb(255, 0, 255);
+
+            m_SandEnv = new Surface(DataDir + @"sand_env.png");
+            m_SandEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_WaterEnv = new Surface(DataDir + @"water_env.png");
+            m_WaterEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_ForestEnv = new Surface(DataDir + @"forest_env.png");
+            m_ForestEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_GrassEnv = new Surface(DataDir + @"grass_env.png");
+            m_GrassEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_MountainEnv = new Surface(DataDir + @"mountain_env.png");
+            m_MountainEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
+            m_StoneEnv = new Surface(DataDir + @"stone_env.png");
+            m_StoneEnv.SourceColorKey = Color.FromArgb(255, 0, 255);
         }
 
         private void RenderActionInfo() {
             if (DateTime.Now <= LastActionTime.AddSeconds(5)) {
                 Surface m_ActionInfoSurf = font_actioninfo.Render(StrActionInfo, Color.Black);
-                Video.Screen.Blit(m_ActionInfoSurf, ActionInfoArea);
+                BufferSurface.Blit(m_ActionInfoSurf, ActionInfoArea);
             }
 
             if (DateTime.Now <= LastEventTime.AddSeconds(5)) {
                 Surface m_EventInfoSurf = font_actioninfo.Render(LastEventStr, Color.Red);
-                Video.Screen.Blit(m_EventInfoSurf, EventInfoArea);
+                BufferSurface.Blit(m_EventInfoSurf, EventInfoArea);
             }
         }
 
         private void RenderRoomInfo() {
-            Video.Screen.Blit(m_infobox, InfoBoxArea);
+            BufferSurface.Blit(m_infobox, InfoBoxArea);
 
 
             var arr = PrepareStringForDisplay(StrRoomInfo, font_questtext, 500);
@@ -770,7 +865,7 @@ namespace GameClient {
 
             foreach (var line in arr) {
                 Surface m_Text = font_questtext.Render(line, Color.Black);
-                Video.Screen.Blit(m_Text, liner);
+                BufferSurface.Blit(m_Text, liner);
 
                 liner.Y += m_Text.Height;
             }
@@ -780,9 +875,9 @@ namespace GameClient {
             Surface m_QuestTitle;
 
             if (CurrentNPC != 0) {
-                CNPC npc = GetKnownNPC(CurrentNPC);
+                CNPC npc = FindKnownNPC(CurrentNPC);
                 if (npc != null) {
-                    Video.Screen.Blit(m_npcDialogBox, NPCDialogArea);
+                    BufferSurface.Blit(m_npcDialogBox, NPCDialogArea);
 
                     // the dialog for when the player is receiving the quests the NPC can give the player
                     if (CurrentQuestId == 0) {
@@ -794,7 +889,7 @@ namespace GameClient {
                             arr = PrepareStringForDisplay(npc.CurrentDialog, font_questtext, NPCDialogQuestTitleArea.Width);
                             foreach (var line in arr) {
                                 Surface m_Text = font_questtext.Render(line, Color.Black);
-                                Video.Screen.Blit(m_Text, liner);
+                                BufferSurface.Blit(m_Text, liner);
 
                                 liner.Y += m_Text.Height;
                             }
@@ -809,14 +904,14 @@ namespace GameClient {
                             String s = q.Title;
 
                             m_QuestTitle = font_actioninfo.Render(s, Color.Black);
-                            Video.Screen.Blit(m_QuestTitle, liner);
+                            BufferSurface.Blit(m_QuestTitle, liner);
 
                             liner.Y += m_QuestTitle.Height;
                         }
 
                         if (QuestsAvailable.Count == 0) {
-                            m_QuestTitle = font_actioninfo.Render(npc.Name + " has no quests for you.", Color.Black);
-                            Video.Screen.Blit(m_QuestTitle, liner);
+                            m_QuestTitle = font_actioninfo.Render(npc.Nickname + " has no quests for you.", Color.Black);
+                            BufferSurface.Blit(m_QuestTitle, liner);
                         }
                     }
                 }
@@ -825,16 +920,16 @@ namespace GameClient {
                 // this is the dialog when the player is reading a quest (and thus has selected one already)
                 if (CurrentQuestId != 0) {
                     m_QuestTitle = font_questtexttitle.Render(StrCurrentQuestTitle, Color.Black);
-                    Video.Screen.Blit(m_QuestTitle, NPCDialogQuestTitleArea);
+                    BufferSurface.Blit(m_QuestTitle, NPCDialogQuestTitleArea);
 
 //                    Surface m_QuestText = font_actioninfo.Render(StrCurrentQuestText, Color.Black, true, 400, 20);
-//                    Video.Screen.Blit(m_QuestText, NPCDialogQuestTextArea);
+//                    BufferSurface.Blit(m_QuestText, NPCDialogQuestTextArea);
 
                     Rectangle liner = new Rectangle(NPCDialogQuestTextArea.X, NPCDialogQuestTextArea.Y, NPCDialogQuestTextArea.Width, NPCDialogQuestTextArea.Height);
 
                     foreach (var line in CurrentQuestText) {
                         Surface m_QuestText = font_questtext.Render(line, Color.Black);
-                        Video.Screen.Blit(m_QuestText, liner);
+                        BufferSurface.Blit(m_QuestText, liner);
 
                         liner.Y += m_QuestText.Height;
                     }
@@ -843,45 +938,45 @@ namespace GameClient {
         }
 
         private void RenderSlotsAndStats() {
-            Video.Screen.Blit(m_statsandslots, SlotsAndStatsArea);
+            BufferSurface.Blit(m_statsandslots, SlotsAndStatsArea);
             
             /*
             // test slot icons
-            Video.Screen.Blit(m_generic_icon_slot1, Slot1Area);
-            Video.Screen.Blit(m_generic_icon_slot2, Slot2Area);
-            Video.Screen.Blit(m_generic_icon_slot3, Slot3Area);
-            Video.Screen.Blit(m_generic_icon_slot4, Slot4Area);
-            Video.Screen.Blit(m_generic_icon_slot5, Slot5Area);
+            BufferSurface.Blit(m_generic_icon_slot1, Slot1Area);
+            BufferSurface.Blit(m_generic_icon_slot2, Slot2Area);
+            BufferSurface.Blit(m_generic_icon_slot3, Slot3Area);
+            BufferSurface.Blit(m_generic_icon_slot4, Slot4Area);
+            BufferSurface.Blit(m_generic_icon_slot5, Slot5Area);
              */
 
             if (CharSelf != null) {
                 if (CharSelf.slot1 != null) {
                     if (CharSelf.slot1.item_id != 0) {
-                        Video.Screen.Blit(m_generic_icon_slot1, Slot1Area);
+                        BufferSurface.Blit(m_generic_icon_slot1, Slot1Area);
                     }
                 }
 
                 if (CharSelf.slot2 != null) {
                     if (CharSelf.slot2.item_id != 0) {
-                        Video.Screen.Blit(m_generic_icon_slot2, Slot2Area);
+                        BufferSurface.Blit(m_generic_icon_slot2, Slot2Area);
                     }
                 }
 
                 if (CharSelf.slot3 != null) {
                     if (CharSelf.slot3.item_id != 0) {
-                        Video.Screen.Blit(m_generic_icon_slot3, Slot3Area);
+                        BufferSurface.Blit(m_generic_icon_slot3, Slot3Area);
                     }
                 }
 
                 if (CharSelf.slot4 != null) {
                     if (CharSelf.slot4.item_id != 0) {
-                        Video.Screen.Blit(m_generic_icon_slot4, Slot4Area);
+                        BufferSurface.Blit(m_generic_icon_slot4, Slot4Area);
                     }
                 }
 
                 if (CharSelf.slot5 != null) {
                     if (CharSelf.slot5.item_id != 0) {
-                        Video.Screen.Blit(m_generic_icon_slot5, Slot5Area);
+                        BufferSurface.Blit(m_generic_icon_slot5, Slot5Area);
                     }
                 }
             }
@@ -908,31 +1003,31 @@ namespace GameClient {
             StatsTextArea.Height = 25;
 
             StatsTextArea.Y = SlotsAndStatsArea.Y + 10;
-            Video.Screen.Blit(m_Level, StatsTextArea);
+            BufferSurface.Blit(m_Level, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_XP, StatsTextArea);
+            BufferSurface.Blit(m_XP, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_Health, StatsTextArea);
+            BufferSurface.Blit(m_Health, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_Strength, StatsTextArea);
+            BufferSurface.Blit(m_Strength, StatsTextArea);
             
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_Energy, StatsTextArea);
+            BufferSurface.Blit(m_Energy, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_Protection, StatsTextArea);
+            BufferSurface.Blit(m_Protection, StatsTextArea);
 
             // values
             StatsTextArea.X = SlotsAndStatsArea.X + 250 + 100;
 
             StatsTextArea.Y = SlotsAndStatsArea.Y + 10;
-            Video.Screen.Blit(m_LevelVal, StatsTextArea);
+            BufferSurface.Blit(m_LevelVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_XPVal, StatsTextArea);
+            BufferSurface.Blit(m_XPVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
             Rectangle bararea = new Rectangle();
@@ -945,42 +1040,42 @@ namespace GameClient {
             Box b = new Box(1, 1, (short)(CharSelf.hp), 19);
             b.Draw(hpbar, Color.Red, true, true);
 
-            Video.Screen.Blit(hpbar, bararea);
-            Video.Screen.Blit(m_HealthVal, StatsTextArea);
+            BufferSurface.Blit(hpbar, bararea);
+            BufferSurface.Blit(m_HealthVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_StrengthVal, StatsTextArea);
+            BufferSurface.Blit(m_StrengthVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_EnergyVal, StatsTextArea);
+            BufferSurface.Blit(m_EnergyVal, StatsTextArea);
 
             StatsTextArea.Y += 25;
-            Video.Screen.Blit(m_ProtectionVal, StatsTextArea);
+            BufferSurface.Blit(m_ProtectionVal, StatsTextArea);
+
+
+            BufferSurface.Blit(m_MagnifyButton, MagnifyButtonArea);
         }
 
         private void RenderItemTooltip() {
-            if (LatestItem.Id != 0) {
-                ToolTipLocation.X = 100;
-                ToolTipLocation.Y = 100;
-
-                Video.Screen.Blit(m_TooltipBox, ToolTipLocation);
+            if (ToolTipItem != null) {
+                BufferSurface.Blit(m_TooltipBox, ToolTipLocation);
 
                 Rectangle r = new Rectangle(ToolTipLocation, new Size(m_TooltipBox.Width, m_TooltipBox.Height));
 
                 r.X += 10;
                 r.Y += 10;
-                Surface title = font_iteminfo.Render(LatestItem.Name, Color.Black);
-                Video.Screen.Blit(title, r);
+                Surface title = font_iteminfo.Render(ToolTipItem.Name, Color.Black);
+                BufferSurface.Blit(title, r);
 
                 r.Y += 50;
-                foreach (var s in LatestItem.Description) {
+                foreach (var s in ToolTipItem.Description) {
                     Surface description = font_iteminfo.Render(s, Color.Black);
-                    Video.Screen.Blit(description, r);
+                    BufferSurface.Blit(description, r);
                     r.Y += 25;
                 }
 
                 String slottext = "";
-                switch (LatestItem.Slot) {
+                switch (ToolTipItem.Slot) {
                     case 1: slottext = "headpiece"; break;
                     case 2: slottext = "bodyarmor"; break;
                     case 3: slottext = "shoes"; break;
@@ -990,34 +1085,34 @@ namespace GameClient {
 
                 r.Y = ToolTipLocation.Y + 170;
                 Surface m_slottext = font_iteminfo.Render("Equipable as: " + slottext, Color.Black);
-                Video.Screen.Blit(m_slottext, r);
+                BufferSurface.Blit(m_slottext, r);
 
                 r.Y += 25;
                 int ry = r.Y;
 
                 Surface st = font_iteminfo.Render("Strength", Color.Black);
-                Video.Screen.Blit(st, r);
+                BufferSurface.Blit(st, r);
                 
                 r.Y += 25;
                 Surface en = font_iteminfo.Render("Energy", Color.Black);
-                Video.Screen.Blit(en, r);
+                BufferSurface.Blit(en, r);
 
                 r.Y += 25; 
                 Surface pr = font_iteminfo.Render("Protection", Color.Black);
-                Video.Screen.Blit(pr, r);
+                BufferSurface.Blit(pr, r);
 
                 r.Y = ry;
                 r.X += 100;
-                Surface stval = font_iteminfo.Render(LatestItem.strength + "", Color.Black);
-                Video.Screen.Blit(stval, r);
+                Surface stval = font_iteminfo.Render(ToolTipItem.strength + "", Color.Black);
+                BufferSurface.Blit(stval, r);
 
                 r.Y += 25;
-                Surface enval = font_iteminfo.Render(LatestItem.energy + "", Color.Black);
-                Video.Screen.Blit(enval, r);
+                Surface enval = font_iteminfo.Render(ToolTipItem.energy + "", Color.Black);
+                BufferSurface.Blit(enval, r);
 
                 r.Y += 25;
-                Surface prval = font_iteminfo.Render(LatestItem.protection + "", Color.Black);
-                Video.Screen.Blit(prval, r);
+                Surface prval = font_iteminfo.Render(ToolTipItem.protection + "", Color.Black);
+                BufferSurface.Blit(prval, r);
             }
         }
 
@@ -1045,7 +1140,218 @@ namespace GameClient {
                 LastHeroPos.Y = hero.Y;
             }
 
-            Video.Screen.Blit(hero);
+            BufferSurface.Blit(hero);
+        }
+
+        private Surface newTexFromEnv(byte envid) {
+            Surface tex = null;
+
+            switch (envid) {
+                case 1:
+                    tex = new Surface(m_StoneEnv);
+                    break;
+                case 2:
+                    tex = new Surface(m_GrassEnv);
+                    break;
+                case 3:
+                    tex = new Surface(m_ForestEnv);
+                    break;
+                case 4:
+                    tex = new Surface(m_MountainEnv);
+                    break;
+                case 6:
+                    tex = new Surface(m_SandEnv);
+                    break;
+                case 0:
+                case 5:
+                default:
+                    tex = new Surface(m_WaterEnv);
+                    break;
+            }
+
+            return tex;
+        }
+
+        private Surface newMapTexFromEnv(byte envid) {
+            Surface tex = null;
+
+            Rectangle spriterect = new Rectangle();
+            spriterect.Width = 64;
+            spriterect.Height = 64;
+            spriterect.X = 0;
+            spriterect.Y = envid * 64;
+
+            tex = new Surface(64,64);
+            tex.Blit(m_SpriteSheet, new Point(0,0), spriterect);
+
+            tex = tex.CreateStretchedSurface(new Size(250, 250));
+
+            return tex;
+        }
+
+        private void RenderZoomedInWorld() {
+
+            if (arrStrMap == null) {
+                return;
+            }
+
+            int maxy = arrStrMap.Length;
+            int maxx = 0;
+
+            if (maxy > 0) {
+                maxx = arrStrMap[0].Length;
+            }
+
+            byte envtype = 0;
+            for (int y = 0; y < maxy; y++) {
+                maxx = arrStrMap[y].Length;
+                for (int x = 0; x < maxx; x++) {
+                    if (arrStrMap[y][x] == '@') {
+                        envtype = this.RoomEnvType;
+
+                        envtex_east = 0;
+                        envtex_north = 0;
+                        envtex_west = 0;
+                        if (x > 0) {
+                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
+                        }
+                        if (y > 0) {
+                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
+                        }
+                        if (x < (maxx - 1)) {
+                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
+                        }
+                    } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
+                        envtype = (byte)((arrStrMap[y][x] - 'a') & 0xff);
+
+                        envtex_east = 0;
+                        envtex_north = 0;
+                        envtex_west = 0;
+                        if (x > 0) {
+                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
+                        }
+                        if (y > 0) {
+                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
+                        }
+                        if (x < (maxx - 1)) {
+                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
+                        }
+                    }
+                }
+            }
+
+            // draw ground surface of current environment where you are now
+            Rectangle groundrect = new Rectangle();
+            groundrect.X = 250;
+            groundrect.Y = 25+250;
+            groundrect.Width = 250;
+            groundrect.Height = 250;
+            Surface ground = newMapTexFromEnv(envtype);
+            BufferSurface.Blit(ground, groundrect);
+
+            // draw first person view
+
+            Rectangle eastrect = new Rectangle();
+            Rectangle northrect = new Rectangle();
+            Rectangle westrect = new Rectangle();
+
+
+            Surface east = newTexFromEnv(envtex_east);
+            Surface north = newTexFromEnv(envtex_north);
+            Surface west = newTexFromEnv(envtex_west);
+           
+            
+            eastrect.X = 0;
+            eastrect.Y = 25 + 250;
+            eastrect.Width = east.Rectangle.Width;
+            eastrect.Height = east.Rectangle.Height;
+
+            northrect.X = 250;
+            northrect.Y = 25;
+            northrect.Width = north.Rectangle.Width;
+            northrect.Height = north.Rectangle.Height;
+
+            westrect.X = 500;
+            westrect.Y = 25 + 250;
+            westrect.Width = west.Rectangle.Width;
+
+
+            // draw environments
+
+            // north
+            BufferSurface.Blit(north, northrect);
+
+            // east
+            BufferSurface.Blit(east, eastrect);
+
+            // west
+            BufferSurface.Blit(west, westrect);
+
+
+            // draw npcs
+            int npcindex = 0;
+
+            Point rNpc = new Point();
+            rNpc.X = 500 - 80;
+            rNpc.Y = 25 + 250 + 50;
+
+            foreach (var npc in NPCsAvailable) {
+                if ((!npc.isDead) && (npc.X == CharSelf.X) && (npc.Y == CharSelf.Y)) {
+                    npcindex++;
+
+                    // draw npc puppet
+                    m_SpriteNPCPuppet.CurrentAnimation = "idle";
+                    m_SpriteNPCPuppet.Animate = true;
+                    BufferSurface.Blit(m_SpriteNPCPuppet, rNpc);
+
+                    // draw npc.Nickname
+                    Surface npcname = font_chartitle.Render(npc.Nickname, Color.Black);
+                    rNpc.Y -= 18;
+
+                    BufferSurface.Blit(npcname, rNpc);
+                    rNpc.Y += 18;
+
+                    rNpc.X -= 80;
+                }
+            }
+
+
+            // draw other players
+            Point rPlayer = new Point();
+            rPlayer.X = 250;
+            rPlayer.Y = 25 + 250 + 50;
+
+            foreach (var player in this.CharactersHere) {
+                if ((!player.isDead) && (player.X == CharSelf.X) && (player.Y == CharSelf.Y)) {
+                    npcindex++;
+
+                    // draw npc puppet
+                    m_SpritePlayerPuppet.CurrentAnimation = "idle";
+                    m_SpritePlayerPuppet.Animate = true;
+                    BufferSurface.Blit(m_SpritePlayerPuppet, rPlayer);
+
+                    // draw player.Nickname
+                    Surface playername = font_chartitle.Render(player.Nickname, Color.Black);
+                    rPlayer.Y -= 18;
+
+                    BufferSurface.Blit(playername, rPlayer);
+                    rPlayer.Y += 18;
+
+                    rPlayer.X += 80;
+                }
+            }
+        }
+
+        private byte getEnvTypeFromChar(char c) {
+            if ((c >= '0') && (c <= '9')) {
+                return (byte)(UInt32.Parse(c + "") & 0xff);
+            } else if ((c >= 'A') && (c <= 'Z')) {
+                return (byte)((c - 'A') & 0xff);
+            } else if ((c >= 'a') && (c <= 'z')) {
+                return (byte)((c - 'a') & 0xff);
+            }
+
+            return 0;
         }
 
         private void RenderWorld() {
@@ -1075,6 +1381,19 @@ namespace GameClient {
                         envtype = this.RoomEnvType;
                         NewHeroPos.X = worldpoint.X;
                         NewHeroPos.Y = worldpoint.Y;
+
+                        envtex_east = 0;
+                        envtex_north = 0;
+                        envtex_west = 0; 
+                        if (x > 0) {
+                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
+                        }
+                        if (y > 0) {
+                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
+                        }
+                        if (x < (maxx - 1)) {
+                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
+                        }
                     } else if ((arrStrMap[y][x] >= '0') && (arrStrMap[y][x] <= '9')) {
                         envtype = (byte)(UInt32.Parse(arrStrMap[y][x] + "") & 0xff);
                     } else if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
@@ -1083,23 +1402,36 @@ namespace GameClient {
                         envtype = (byte)((arrStrMap[y][x] - 'a') & 0xff);
                         NewHeroPos.X = worldpoint.X;
                         NewHeroPos.Y = worldpoint.Y;
+
+                        envtex_east = 0;
+                        envtex_north = 0;
+                        envtex_west = 0;
+                        if (x > 0) {
+                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
+                        }
+                        if (y > 0) {
+                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
+                        }
+                        if (x < (maxx - 1)) {
+                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
+                        }
                     } else {
                         envtype = 0;
                     }
 
                     spriterect.Y = envtype * sz.Height;
-                    Video.Screen.Blit(m_SpriteSheet, worldpoint, spriterect);
+                    BufferSurface.Blit(m_SpriteSheet, worldpoint, spriterect); 
 
                     if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
                         Rectangle r = new Rectangle();
                         r.X = worldpoint.X;
                         r.Y = worldpoint.Y;
-                        Video.Screen.Blit(m_spriteNpcs, r);
+                        BufferSurface.Blit(m_spriteNpcs, r);
                     } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
                         Rectangle r = new Rectangle();
                         r.X = worldpoint.X;
                         r.Y = worldpoint.Y;
-                        Video.Screen.Blit(m_spriteNpcs, r);
+                        BufferSurface.Blit(m_spriteNpcs, r);
                     }
 
                     worldpoint.X += sz.Width;
@@ -1157,7 +1489,7 @@ namespace GameClient {
         private void RenderDeath() {
             //DeathMessageArea
 
-            Video.Screen.Blit(m_DeathScreen, DeathMessageArea);
+            BufferSurface.Blit(m_DeathScreen, DeathMessageArea);
 
         }
 
@@ -1167,9 +1499,14 @@ namespace GameClient {
             sw.Start();
 
             // Clear the screen, draw the hero and output to the window
-            Video.Screen.Fill(Color.DarkGreen);
+            BufferSurface.Fill(Color.DarkGreen);
             try {
-                RenderWorld();
+                if (isZoomedIn) {
+                    RenderZoomedInWorld();
+                } else {
+                    RenderWorld();
+                }
+
                 RenderSlotsAndStats();
                 RenderActionInfo();
                 RenderRoomInfo();
@@ -1182,6 +1519,7 @@ namespace GameClient {
             } catch (System.ArgumentOutOfRangeException ex) {
                 //Console.WriteLine(ex.StackTrace.ToString());
             }
+            Video.Screen.Blit(BufferSurface);
             Video.Screen.Update();
 
             sw.Stop();
@@ -1189,10 +1527,121 @@ namespace GameClient {
             lLoopTime = sw.ElapsedMilliseconds;
         }
 
+        public void SetZoomInMode(bool b) {
+            if (b != this.isZoomedIn) {
+                this.isZoomedIn = b;
+
+                // ...
+            }
+        }
+
+        private void Events_MouseMotion(object sender, MouseMotionEventArgs e) {
+            bool bShowItemTooltip = false;
+
+            if (((e.X >= Slot1Area.X) && (e.X <= Slot1Area.Right)) &&
+                ((e.Y >= Slot1Area.Y) && (e.Y <= Slot1Area.Bottom))
+                ) {
+                if (CharSelf.slot1 != null) {
+                    ToolTipLocation.X = e.X;
+                    ToolTipLocation.Y = e.Y;
+                    CItem item = FindItemInCache(CharSelf.slot1.item_id);
+                    if (item == null) {
+                        if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                            net.SendBinToServer(GameNet.c_info_getiteminfo, CharSelf.slot1.item_id, 0, "");
+                        }
+                    } else {
+                        ToolTipItem = item;
+                        bShowItemTooltip = true;
+                    }
+                }
+            } else if (((e.X >= Slot2Area.X) && (e.X <= Slot2Area.Right)) &&
+                ((e.Y >= Slot2Area.Y) && (e.Y <= Slot2Area.Bottom))
+                ) {
+                if (CharSelf.slot2 != null) {
+                    ToolTipLocation.X = e.X;
+                    ToolTipLocation.Y = e.Y;
+                    CItem item = FindItemInCache(CharSelf.slot2.item_id);
+                    if (item == null) {
+                        if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                            net.SendBinToServer(GameNet.c_info_getiteminfo, CharSelf.slot2.item_id, 0, "");
+                        }
+                    } else {
+                        ToolTipItem = item;
+                        bShowItemTooltip = true;
+                    }
+                }
+            } else if (((e.X >= Slot3Area.X) && (e.X <= Slot3Area.Right)) &&
+                ((e.Y >= Slot3Area.Y) && (e.Y <= Slot3Area.Bottom))
+                ) {
+                if (CharSelf.slot3 != null) {
+                    ToolTipLocation.X = e.X;
+                    ToolTipLocation.Y = e.Y;
+                    CItem item = FindItemInCache(CharSelf.slot3.item_id);
+                    if (item == null) {
+                        if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                            net.SendBinToServer(GameNet.c_info_getiteminfo, CharSelf.slot3.item_id, 0, "");
+                        }
+                    } else {
+                        ToolTipItem = item;
+                        bShowItemTooltip = true;
+                    }
+                }
+            } else if (((e.X >= Slot4Area.X) && (e.X <= Slot4Area.Right)) &&
+                ((e.Y >= Slot4Area.Y) && (e.Y <= Slot4Area.Bottom))
+                ) {
+                if (CharSelf.slot4 != null) {
+                    ToolTipLocation.X = e.X;
+                    ToolTipLocation.Y = e.Y;
+                    CItem item = FindItemInCache(CharSelf.slot4.item_id);
+                    if (item == null) {
+                        if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                            net.SendBinToServer(GameNet.c_info_getiteminfo, CharSelf.slot4.item_id, 0, "");
+                        }
+                    } else {
+                        ToolTipItem = item;
+                        bShowItemTooltip = true;
+                    }
+                }
+            } else if (((e.X >= Slot5Area.X) && (e.X <= Slot5Area.Right)) &&
+                ((e.Y >= Slot5Area.Y) && (e.Y <= Slot5Area.Bottom))
+                ) {
+                if (CharSelf.slot5 != null) {
+                    ToolTipLocation.X = e.X;
+                    ToolTipLocation.Y = e.Y;
+                    CItem item = FindItemInCache(CharSelf.slot5.item_id);
+                    if (item == null) {
+                        if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                            net.SendBinToServer(GameNet.c_info_getiteminfo, CharSelf.slot5.item_id, 0, "");
+                        }
+                    } else {
+                        ToolTipItem = item;
+                        bShowItemTooltip = true;
+                    }
+                }
+            }
+
+            if (!bShowItemTooltip) {
+                ToolTipItem = null;
+            }
+        }
+
+        private void Events_MouseButtonUp(object sender, MouseButtonEventArgs e) {
+            if ( (e.Button == MouseButton.PrimaryButton) &&
+                ((e.X >= MagnifyButtonArea.X) && (e.X <= MagnifyButtonArea.Right)) &&
+                ((e.Y >= MagnifyButtonArea.Y) && (e.Y <= MagnifyButtonArea.Bottom))
+                ) {
+                    if (this.isZoomedIn) {
+                        SetZoomInMode(false);
+                    } else {
+                        SetZoomInMode(true);
+                    }
+            }
+        }
+
         private void Events_KeyboardDown(object sender, KeyboardEventArgs e) {
             // Check which key was pressed and change the animation accordingly
             switch (e.Key) {
-                case Key.LeftArrow:
+                case Key.A:
                     net.SendBinToServer(GameNet.c_run_walkleft, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkLeft";
@@ -1201,7 +1650,7 @@ namespace GameClient {
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
                     break;
-                case Key.RightArrow:
+                case Key.D:
                     net.SendBinToServer(GameNet.c_run_walkright, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkRight";
@@ -1210,7 +1659,7 @@ namespace GameClient {
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
                     break;
-                case Key.DownArrow:
+                case Key.S:
                     net.SendBinToServer(GameNet.c_run_walkbackwards, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkDown";
@@ -1219,7 +1668,7 @@ namespace GameClient {
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
                     break;
-                case Key.UpArrow:
+                case Key.W:
                     net.SendBinToServer(GameNet.c_run_walkforward, 0, 0, "");
 
                     hero.CurrentAnimation = "WalkUp";
@@ -1245,7 +1694,7 @@ namespace GameClient {
                         }
                     }
                     break;
-                case Key.Return:
+                case Key.Space:
                     // todo: getnpcname and id, start interaction
                     if (CurrentNPC != 0) {
                         if (this.QuestsAvailable.Count() > 0) {
@@ -1265,28 +1714,6 @@ namespace GameClient {
                     CurrentNPC = 0;
                     CurrentQuestId = 0;
 
-                    break;
-                case Key.Keypad1:
-                    net.SendBinToServer(GameNet.c_info_getiteminfo, 1, 0, "");
-                    break;
-                case Key.Keypad2:
-                    net.SendBinToServer(GameNet.c_info_getiteminfo, 2, 0, "");
-                    break;
-                case Key.Keypad8:
-                    net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
-                    break;
-                case Key.Keypad9:
-                    List<UInt32> stuffi = new List<UInt32>();
-                    List<String> stuffs = new List<String>();
-
-                    stuffi.Add(123);
-                    stuffi.Add(456);
-                    stuffi.Add(789);
-
-                    stuffs.Add("123");
-                    stuffs.Add("123456");
-
-                    net.SendBin2ToServer(GameNet.c_response_gearslots, stuffi, stuffs);
                     break;
                 case Key.Q:
                     Events.QuitApplication();

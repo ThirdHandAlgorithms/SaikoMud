@@ -154,13 +154,21 @@
     <Content Include="Data\generic_handsslot.png" />
     <Content Include="Data\generic_headslot.png" />
     <Content Include="Data\generic_weaponslot.png" />
+    <Content Include="Data\grass_env.png" />
     <Content Include="Data\infobox.png" />
     <Content Include="Data\intro_test.mp3" />
+    <Content Include="Data\magnifybutton.png" />
+    <Content Include="Data\mountain_env.png" />
     <Content Include="Data\npcs.png" />
+    <Content Include="Data\npc_puppet.png" />
+    <Content Include="Data\player_puppet.png" />
     <Content Include="Data\puppet.png" />
+    <Content Include="Data\sand_env.png" />
     <Content Include="Data\statsandslots.png" />
+    <Content Include="Data\stone_env.png" />
     <Content Include="Data\textures.png" />
     <Content Include="Data\tooltip.png" />
+    <Content Include="Data\water_env.png" />
     <Content Include="settings.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
