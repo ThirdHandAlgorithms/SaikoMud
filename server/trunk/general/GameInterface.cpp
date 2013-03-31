@@ -109,10 +109,13 @@ void CGameInterface::GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t 
    if (this->loggedInCharacter == NULL) {
       Global_World()->echoAsciiMap(s, 0, 0, 20, false);
    } else {
-      *iCurrentSelfX = this->loggedInCharacter->x.get();
-      *iCurrentSelfY = this->loggedInCharacter->y.get();
+      long realx = this->loggedInCharacter->x.get();
+      long realy = this->loggedInCharacter->y.get();
 
-      Global_World()->echoAsciiMap(s, *iCurrentSelfX, *iCurrentSelfY, 5, true, this->loggedInCharacter);
+      *iCurrentSelfX = (uint32_t)((int)realx);
+      *iCurrentSelfY = (uint32_t)((int)realy);
+
+      Global_World()->echoAsciiMap(s, realx, realy, 5, true, this->loggedInCharacter);
    }
 }
 

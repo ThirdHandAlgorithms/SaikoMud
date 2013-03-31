@@ -38,8 +38,8 @@ namespace GameClient {
     class CPositionedChar : CBaseStats {
         public UInt32 WorldID = 0;
         public String Nickname = "";
-        public long X;
-        public long Y;
+        public Int32 X;
+        public Int32 Y;
         public bool isDead = false;
     };
 
@@ -593,8 +593,8 @@ namespace GameClient {
             }
             c.WorldID = worldid;
             c.Nickname = name;
-            c.X = lastknownx;
-            c.Y = lastknowny;
+            c.X = (Int32)lastknownx;
+            c.Y = (Int32)lastknowny;
         }
 
         public void OnDialog(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
