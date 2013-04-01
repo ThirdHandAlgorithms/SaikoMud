@@ -57,10 +57,12 @@ public:
    bool addToBags(unsigned long iItemId);
    bool takeFromBags(unsigned long iItemId);
 
+   std::vector<unsigned long> getBagSlots() const;
+
    // player specific functions
    bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
 
-   int getItemsInSlots(TGFVector *v);
+   int getItemsInSlots(TGFVector *v);  // must free items in v
 };
 
 class CNPCharacter: public CCharacter {

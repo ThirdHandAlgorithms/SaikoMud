@@ -30,7 +30,12 @@
 #define c_info_getiteminfo 0x20000301
 #define c_info_getitemstats 0x20000302
 
-#define c_info_getgearslots 0x30400001
+#define c_info_getgearslots 0x30000401
+//#define c_info_equipitem 0x60400002
+//#define c_info_dequipitem 0x60400003
+
+#define c_self_getbagslots 0x00000411
+//#define c_info_deletefrombagslots 0x30410002
 
 #define c_response_lastactioninfo 0x30010000
 #define c_response_roominfo 0x30020000
@@ -60,6 +65,8 @@
 #define c_response_itemstats 0x70300002
 
 #define c_response_gearslots 0x80400001
+
+#define c_response_bagslots 0x80410001
 
 #define c_response_playerinfo 0x70210001
 
@@ -118,6 +125,7 @@ public:
    void inform_earnxp(long xp, long totalxp);
    void inform_combatevent(uint32_t iSourceWorldId, uint32_t iTargetWorldId, int eventtype, int amount, TGFString *combatmsg);
    void informAboutAllStats(CCharacter *cAbout);
+   bool inform_self_bagslots();
 
    void sendChatMessage(uint32_t iChannelNr, TGFString *sMsg);
 

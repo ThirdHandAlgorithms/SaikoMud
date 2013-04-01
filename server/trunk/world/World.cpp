@@ -540,6 +540,7 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       CNPCharacter *npc = static_cast<CNPCharacter *>(cFor);
       
       bool bNotEnoughBagspace = false;
+      bool bEarnedItems = false;
 
       // earn xp for killing npc
       long earnedxp = npc->level.get() * 10;
@@ -548,6 +549,8 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       // earn random item dropped by npc
       unsigned long drop_item_id = npc->getRandomItemDrop();
       if (drop_item_id != 0) {
+         bEarnedItems = true;
+
          if (!cKilledBy->addToBags(drop_item_id)) {
             bNotEnoughBagspace = true;
          }
@@ -556,12 +559,19 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       // earn fixed quest items that are dropped by npc (if you have the quest)
       std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
       for (int i = 0; i < questdrops.size(); i++) {
+         //if ( cKilledBy->isOnQuest() ) {}
+         bEarnedItems = true;
+
          if ( !cKilledBy->addToBags(questdrops[i]) ) {
             bNotEnoughBagspace = true;
          }
       }
 
       Global_CharacterUpdate()->schedule(cKilledBy);
+
+      if (bEarnedItems) {
+         // todo: signal for new items
+      }
 
       if (bNotEnoughBagspace) {
          printf("TODO: Not enough bagspace\n");
