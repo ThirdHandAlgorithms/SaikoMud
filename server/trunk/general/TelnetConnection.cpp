@@ -413,17 +413,13 @@ bool CTelnetConnection::inform_gearslots(uint32_t iWorldId) {
    std::vector<uint32_t> intarr;
    TGFStringVector strarr;
 
-   /*
-   intarr.push_back(123);
-   strarr.addChunk(new TGFString("123456"));
-   */
-
    CCharacter *c = Global_World()->getCharacter(iWorldId);
    if (c != NULL) {
       intarr.push_back(iWorldId);
       strarr.addChunk(new TGFString(c->name.link()));
 
       TGFVector v;
+      v.autoClear = true;
       int x = c->getItemsInSlots(&v);
       for (int i = 0; i < 5; i++) {
          CItem *item = static_cast<CItem *>(v.elementAt(i));
@@ -440,6 +436,45 @@ bool CTelnetConnection::inform_gearslots(uint32_t iWorldId) {
    }
 
    return true;
+}
+
+bool CTelnetConnection::inform_self_bagslots() {
+   std::vector<uint32_t> intarr;
+   TGFStringVector strarr;
+
+   TGFString tmp;
+
+   TGFVector v;
+   int c = this->gameintf.getOwnBagSlots(&v);
+   if (c != -1) {
+      for (int i = 0; i < c; i++) {
+         CItem *item = static_cast<CItem *>(v.elementAt(i));
+         if (item != NULL) {
+            intarr.push_back(item->id);
+            strarr.addChunk( new TGFString(&item->name) );
+
+            tmp.append(&item->name);
+            tmp.append_ansi("\r\n");
+         } else {
+            intarr.push_back(0);
+            strarr.addChunk( new TGFString("") );
+         }
+      }
+
+      if (!bBinaryMode) {
+         if (tmp.getLength() > 0) {
+            tmp.append_ansi("\r\n");
+            this->send(&tmp);
+         }
+      } else {
+         this->sendBin2(c_response_bagslots, &intarr, &strarr);
+      }
+
+      return true;
+   }
+
+
+   return false;
 }
 
 void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s) {
@@ -654,6 +689,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             } else {
                bActionOk = false;
             }
+         } else if ( copy.startsWith_ansi("/bags") ) {
+            bActionOk = this->inform_self_bagslots();
          }
 
          if ( copy.startsWith_ansi("w") ) {
@@ -773,6 +810,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->inform_itemstats(intparam1);
             } else if (command == c_info_getgearslots) {
                bActionOk = this->inform_gearslots(intparam1);
+            } else if (command == c_self_getbagslots) {
+               bActionOk = this->inform_self_bagslots();
             }
 
             this->inform_lastaction();

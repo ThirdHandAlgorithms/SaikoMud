@@ -64,6 +64,8 @@ void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
    }
 
    this->maxbagslots.set( rec.getValue(flds.getFieldIndex_ansi("maxbagslots"))->asInteger() );
+
+   this->loadBagslots();
 }
 
 void CCharacter::calculateStats() {
@@ -259,6 +261,10 @@ bool CCharacter::takeFromBags(unsigned long iItemId) {
    }
 
    return b;
+}
+
+std::vector<unsigned long> CCharacter::getBagSlots() const {
+   return this->bagslots;
 }
 
 void CCharacter::loadActionSlots() {

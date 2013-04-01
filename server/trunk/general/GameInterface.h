@@ -62,6 +62,8 @@ public:
 
    bool inform_SelfAboutAllStats();
 
+   int getOwnBagSlots(TGFVector *v);
+
    // special GM actions
    bool run_teleport( long x, long y );
 

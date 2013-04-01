@@ -394,3 +394,24 @@ bool CGameInterface::inform_SelfAboutAllStats() {
 
    return true;
 }
+
+int CGameInterface::getOwnBagSlots(TGFVector *v) {
+   this->DoChecks();
+
+   v->autoClear = false;
+   if (this->loggedInCharacter != NULL) {
+      std::vector<unsigned long> bagslots = this->loggedInCharacter->getBagSlots();
+      
+      CWorld *world = Global_World();
+
+      for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+         CItem *item = world->getItem( *it );
+         
+         v->addElement(item);
+      }
+
+      return v->size();
+   }
+
+   return -1;
+}
