@@ -29,7 +29,7 @@ protected:
    TGFVector actionslots;
 
    void loadBagslots();
-   void saveBagslots();
+   
    void loadActionSlots();
 
    void loadFromRecord(TMySQLSquirrel *pQuery);
@@ -53,6 +53,7 @@ public:
    ~CCharacter();
 
    void save();
+   void saveBagslots();
 
    bool addToBags(unsigned long iItemId);
    bool takeFromBags(unsigned long iItemId);
@@ -60,8 +61,13 @@ public:
    std::vector<unsigned long> getBagSlots() const;
 
    // player specific functions
-   bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
+   bool pickupQuest(long iQuestId);
 
+   bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
+   bool isOnQuest(long iQuestId);
+
+   bool completeQuest(long iQuestId, long iEarnXp);
+   
    int getItemsInSlots(TGFVector *v);  // must free items in v
 };
 

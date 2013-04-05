@@ -4,6 +4,8 @@
 
 #include "../world/Items.h"
 
+#include <Groundfloor/Materials/GFFunctions.h>
+
 CCharacter::CCharacter( TMySQLSquirrelConnection *pConn, unsigned long id ) : CCombatant() {
    this->WorldId = 0;
 
@@ -181,8 +183,10 @@ void CCharacter::loadBagslots() {
          TGFBRecord rec;
          if ( qry.next() ) {
             qry.fetchRecord(&rec);
-         
+            
+            //if (bagslots.size() < this->maxbagslots.get()) { // should be correct in database.....
             bagslots.push_back( rec.getValue(0)->asInteger() );
+            //}
          }
 
          qry.close();
@@ -196,7 +200,7 @@ void CCharacter::loadBagslots() {
 
 void CCharacter::saveBagslots() {
    if (baglock.lockWhenAvailable()) {
-      TGFString sql1("delete from bagslot where char_id=:char_id");
+      TGFString sql1("delete from bagslot where char_id=:char_id");     // <-- causes that we always start with an insert that succeeds if we have multiple items of the same item_id
       TMySQLSquirrel qry(this->conn);
       qry.setQuery(&sql1);
       qry.findOrAddParam("char_id")->setInteger(this->id);
@@ -205,12 +209,19 @@ void CCharacter::saveBagslots() {
       if ( qry.open(&err) ) {
          qry.close();
       } else {
-         printf("CCharacter::loadBagslots() - delete: %s\n", err.errorstring.getValue());
+         printf("CCharacter::saveBagslots() - delete: %s\n", err.errorstring.getValue());
       }
 
-      TGFString sql2("insert into bagslot ( char_id, item_id) values (:char_id,:item_id)");
+      TGFString sql2("insert into bagslot ( char_id, item_id, stacksize) values (:char_id,:item_id, 1)");
+
+      unsigned int items_added = 0;
 
       for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+         if (items_added >= this->maxbagslots.get()) {
+            // something went wrong with some other piece of code.......
+            break;
+         }
+
          qry.setQuery(&sql2);
          qry.findOrAddParam("char_id")->setInteger(this->id);
          qry.findOrAddParam("item_id")->setInteger(*it);
@@ -218,8 +229,24 @@ void CCharacter::saveBagslots() {
          if (qry.open(&err)) {
             qry.close();
          } else {
-            printf("CCharacter::loadBagslots() - insert: %s\n", err.errorstring.getValue());
+            // if duplicate, increase stacksize <- only for DB, still multiple items in bags, so maxbagslots applies
+            if (err.errorstring.pos_ansi("Duplicate entry") != -1) {
+               TGFString sql3("update bagslot set stacksize=stacksize+1 where char_id=:char_id and item_id=:item_id");
+               qry.setQuery(&sql3);
+               qry.findOrAddParam("char_id")->setInteger(this->id);
+               qry.findOrAddParam("item_id")->setInteger(*it);
+               TSquirrelReturnData err2;
+               if (qry.open(&err2)) {
+                  qry.close();
+               } else {
+                  printf("CCharacter::saveBagslots() - update: %s\n", err2.errorstring.getValue());
+               }
+            } else {
+               printf("CCharacter::saveBagslots() - insert: %s\n", err.errorstring.getValue());
+            }
          }
+
+         items_added++;
       }
 
       baglock.unlock();
@@ -289,14 +316,12 @@ void CCharacter::save() {
    } else {
       printf("CCharacter::save(): %s\n", err.errorstring.getValue());
    }
-
-   this->saveBagslots();
 }
 
 bool CCharacter::hasDoneQuest(long iQuestId) {
    bool bDoneQuest = false;
 
-   TGFString sql("select * from `questhistory` where char_id=:char_id and quest_id=:quest_id and dt_completed!=0");
+   TGFString sql("select dt_completed from `questhistory` where char_id=:char_id and quest_id=:quest_id and dt_completed!=0");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
    qry.findOrAddParam("char_id")->setInteger(this->id);
@@ -323,6 +348,74 @@ bool CCharacter::hasDoneQuest(long iQuestId) {
    }
 
    return bDoneQuest;
+}
+
+bool CCharacter::isOnQuest(long iQuestId) {
+   bool bIsOnQuest = false;
+
+   TGFString sql("select dt_pickedup from `questhistory` where char_id=:char_id and quest_id=:quest_id and dt_completed=0");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(this->id);
+   qry.findOrAddParam("quest_id")->setInteger(iQuestId);
+   
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      if ( qry.next() ) {
+         bIsOnQuest = true;
+      }
+
+      qry.close();
+   } else {
+      printf("CCharacter::isOnQuest(): %s\n", err.errorstring.getValue());
+   }
+
+   return bIsOnQuest;
+}
+
+bool CCharacter::pickupQuest(long iQuestId) {
+   // should give duplicate error if quest was already picked up somehow...
+   TGFString sql("insert into `questhistory` ( char_id, quest_id, dt_pickedup) values (:char_id,:quest_id,:dt_pickedup)");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(this->id);
+   qry.findOrAddParam("quest_id")->setInteger(iQuestId);
+   qry.findOrAddParam("dt_pickedup")->setInt64( GFGetTimestamp() );
+   
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      qry.close();
+   } else {
+      if (err.errorstring.pos_ansi("Duplicate entry") == -1) {
+         printf("CCharacter::pickupQuest(): %s\n", err.errorstring.getValue());
+      }
+
+      return false;
+   }
+
+   return true;
+}
+
+bool CCharacter::completeQuest(long iQuestId, long iEarnXp) {
+   TGFString sql("update `questhistory` set dt_completed=:dt_completed where char_id=:char_id and quest_id=:quest_id and dt_completed=0");
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("char_id")->setInteger(this->id);
+   qry.findOrAddParam("quest_id")->setInteger(iQuestId);
+   qry.findOrAddParam("dt_completed")->setInt64(GFGetTimestamp());
+
+   TSquirrelReturnData err;
+   if (qry.open(&err)) {
+      qry.close();
+
+      if (err.affected == 1) {   // this way we don't have to lock the function with a mutex and do selects..
+         this->xp.lockedAdd(iEarnXp);
+
+         return true;
+      }
+   }
+
+   return false;
 }
 
 // ----------------------------------------------------------------

@@ -30,7 +30,7 @@
 #define c_info_getiteminfo 0x20000301
 #define c_info_getitemstats 0x20000302
 
-#define c_info_getgearslots 0x30000401
+#define c_info_getgearslots 0x30400001
 //#define c_info_equipitem 0x60400002
 //#define c_info_dequipitem 0x60400003
 
@@ -83,6 +83,8 @@
 class CTelnetConnection: public TJRThreadedConnection {
 protected:
    bool bBinaryMode;
+
+   __int64 iLastTimeSentMap;
 
    TGFString buffer;
 

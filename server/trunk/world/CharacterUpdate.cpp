@@ -16,6 +16,11 @@ void CCharacterUpdate::execute() {
    if ( c != NULL ) {
       c->save();
    }
+
+   c = static_cast<CCharacter *>( queueBagSave.pop() );
+   if ( c != NULL ) {
+      c->saveBagslots();
+   }
 }
 
 void CCharacterUpdate::schedule( CCharacter *pChar ) {
@@ -24,3 +29,8 @@ void CCharacterUpdate::schedule( CCharacter *pChar ) {
    }
 }
 
+void CCharacterUpdate::scheduleBagSave( CCharacter *pChar ) {
+   if ( queueBagSave.findElement(pChar) == -1 ) {
+      queueBagSave.push(pChar);
+   }
+}
