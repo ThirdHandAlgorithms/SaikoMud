@@ -514,6 +514,25 @@ void CTelnetConnection::inform_questtext(uint32_t iQuestId, TGFString *s, long r
    }
 }
 
+void CTelnetConnection::inform_questitemrequired(uint32_t iQuestId, uint32_t item_id, uint32_t iNumberRequired, TGFString *sItemName) {
+   TGFString tmp(sItemName);
+   TGFBValue v;
+   v.setInteger(iNumberRequired);
+   tmp.append_ansi(" ");
+   tmp.append(v.asString());
+   tmp.append_ansi("x");
+
+   if (!bBinaryMode) {
+      if (tmp.getLength() > 0) {
+         tmp.append_ansi("\r\n");
+
+         this->send(&tmp);
+      }
+   } else {
+      this->sendBin(c_response_questitemrequired, iQuestId, item_id, &tmp, iNumberRequired);
+   }
+}
+
 void CTelnetConnection::inform_npcinfo(uint32_t iWorldId, TGFString *s, uint32_t x, uint32_t y) {
    TGFString tmp(s);
 
@@ -803,6 +822,19 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                
                if (bActionOk) {
                   this->inform_questtext(intparam1, &s, rewards_xp);
+
+                  // send item requirement information
+                  CQuest *q = Global_World()->getQuest(intparam1);
+                  
+                  // i hate std:vectors... why am I doing it this way.......
+                  std::vector<CQuestItemRequired> items = q->getRequiredItems();
+                  CQuestItemRequired *it;
+                  for (std::vector<CQuestItemRequired>::iterator it = items.begin(); it != items.end(); ++it) {
+                     CItem *item = Global_World()->getItem(it->item_id);
+                     if (item != NULL) {
+                        this->inform_questitemrequired(q->id, it->item_id, it->amountrequired, &(item->name));
+                     }
+                  }
                }
             } else if (command == c_self_getallstats) {
                bActionOk = this->gameintf.inform_SelfAboutAllStats();
@@ -814,6 +846,9 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->inform_gearslots(intparam1);
             } else if (command == c_self_getbagslots) {
                bActionOk = this->inform_self_bagslots();
+            } else if (command == c_interact_getquestitemsrequired) {
+               // ... todo
+               // implemented in c_interact_getquesttext
             }
 
             this->inform_lastaction();
