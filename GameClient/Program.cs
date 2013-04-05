@@ -17,10 +17,28 @@ using System.Timers;
 
 namespace GameClient {
 
+    class CLinkedItem {
+        public UInt32 item_id;
+        public UInt32 amount;
+        public String str;
+    };
+
     class CQuest {
         public UInt32 QuestID;
         public String Title;
         public String Text;
+
+        public List<CLinkedItem> RequiredItems = new List<CLinkedItem>();
+
+        public bool IsKnownRequirement(UInt32 item_id) {
+            foreach (var item in this.RequiredItems) {
+                if (item.item_id == item_id) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     };
 
     class CBaseStats {
@@ -63,6 +81,8 @@ namespace GameClient {
         public UInt32 totalxp = 0;
         public UInt32 totalhp = 0;
         public UInt32 hp = 0;
+
+        public List<CLinkedItem> bagslots = new List<CLinkedItem>();
     };
 
     class CItem : CBaseStats {
@@ -329,6 +349,7 @@ namespace GameClient {
 
             net.questtitlesinfo += OnQuestTitleInfo;
             net.questtextinfo += OnQuestTextInfo;
+            net.questitemrequired += OnQuestItemRequired;
 
             net.npcinfo += OnNPCInfo;
             net.dialog += OnDialog;
@@ -343,6 +364,7 @@ namespace GameClient {
             net.itemstats += OnItemStatsInfo;
             
             net.gearslots += OnGearSlots;
+            net.bagslots += OnBagSlots;
 
             LoginScreen login = new LoginScreen();
             login.ShowDialog();
@@ -410,6 +432,8 @@ namespace GameClient {
 
                 net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
                 net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
+                CharSelf.bagslots.Clear();
+                net.SendBinToServer(GameNet.c_self_getbagslots, 0, 0, "");
             }
 
             LastActionTime = DateTime.Now;
@@ -428,6 +452,20 @@ namespace GameClient {
             }
 
             arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
+        }
+
+        public void OnBagSlots(UInt32 command, List<UInt32> intarr, List<String> strarr) {
+            int i = 0;
+            foreach (var itemid in intarr) {
+                CLinkedItem item = new CLinkedItem();
+                item.item_id = itemid;
+                item.str = strarr[i];
+                item.amount = 1;        // dont stack items in client interface
+
+                CharSelf.bagslots.Add(item);
+
+                i++;
+            }
         }
 
         public void OnGearSlots(UInt32 command, List<UInt32> intarr, List<String> strarr) {
@@ -744,7 +782,33 @@ namespace GameClient {
             return PrepareStringForDisplay(s, font_questtext, 450);
         }
 
-        public void OnQuestTextInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
+        public CQuest GetKnownQuest(UInt32 iQuestId) {
+            foreach (var q in QuestsAvailable) {
+                if (q.QuestID == iQuestId) {
+                    return q;
+                }
+            }
+
+            return null;
+        }
+
+        public void OnQuestItemRequired(UInt32 command, UInt32 iQuestId, UInt32 iItemId, String str, UInt32 iAmountRequired, UInt32 reserved) {
+            // c_response_questitemrequired
+
+            CQuest q = GetKnownQuest(iQuestId);
+            if (q != null) {
+                if (!q.IsKnownRequirement(iItemId)) {
+                    CLinkedItem req = new CLinkedItem();
+                    req.item_id = iItemId;
+                    req.amount = iAmountRequired;
+                    req.str = str;
+                    q.RequiredItems.Add(req);
+                }
+            }
+
+        }
+
+        public void OnQuestTextInfo(UInt32 command, UInt32 iQuestId, UInt32 intparam2, String str) {
             /*
             var q =
                 from quest in QuestsAvailable
@@ -753,14 +817,12 @@ namespace GameClient {
             // q is an enumerable... why loop over it twice?... let's not do linq here../
             */
 
-            foreach (var q in QuestsAvailable) {
-                if (q.QuestID == intparam1) {
-                    q.Text = str;
-                    StrCurrentQuestTitle = q.Title;
-                    CurrentQuestText = PrepareQuestText(str);
-                    CurrentQuestId = intparam1;
-                    break;
-                }
+            CQuest q = GetKnownQuest(iQuestId);
+            if (q != null) {
+                q.Text = str;
+                StrCurrentQuestTitle = q.Title;
+                CurrentQuestText = PrepareQuestText(str);
+                CurrentQuestId = iQuestId;
             }
 
             frmDebug.addMessage(str + crlf[0]);
@@ -933,6 +995,25 @@ namespace GameClient {
 
                         liner.Y += m_QuestText.Height;
                     }
+                    
+                    liner.Y += 25;
+
+                    CQuest q = GetKnownQuest(CurrentQuestId);
+                    if (q != null) {
+                        if (q.RequiredItems.Count > 0) {
+                            Surface m_ReqItemTxt = font_questtext.Render("Required items", Color.Black);
+                            BufferSurface.Blit(m_ReqItemTxt, liner);
+
+                            liner.Y += m_ReqItemTxt.Height + 15;
+
+                            foreach (var req in q.RequiredItems) {
+                                m_ReqItemTxt = font_questtext.Render(req.str, Color.Black);
+                                BufferSurface.Blit(m_ReqItemTxt, liner);
+
+                                liner.Y += m_ReqItemTxt.Height;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1054,6 +1135,27 @@ namespace GameClient {
 
 
             BufferSurface.Blit(m_MagnifyButton, MagnifyButtonArea);
+        }
+
+        private void RenderBagslots() {
+            Rectangle BagslotTextArea = new Rectangle();
+            BagslotTextArea.X = MagnifyButtonArea.X;
+            BagslotTextArea.Y = RoomInfoTextArea.Y + m_infobox.Height + 10;
+            BagslotTextArea.Width = BufferSurface.Width - BagslotTextArea.X - 40;
+
+            BufferSurface.Blit(m_infobox, BagslotTextArea);
+
+            BagslotTextArea.X += 10;
+            BagslotTextArea.Y += 10;
+
+            if (CharSelf != null) {
+                foreach (var item in CharSelf.bagslots) {
+                    Surface title = font_iteminfo.Render(item.str, Color.Black);
+                    BufferSurface.Blit(title, BagslotTextArea);
+
+                    BagslotTextArea.Y += title.Height;
+                }
+            }
         }
 
         private void RenderItemTooltip() {
@@ -1508,6 +1610,7 @@ namespace GameClient {
                 }
 
                 RenderSlotsAndStats();
+                RenderBagslots();
                 RenderActionInfo();
                 RenderRoomInfo();
                 RenderNPCDialog();

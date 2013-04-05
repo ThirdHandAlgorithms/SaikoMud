@@ -5,6 +5,14 @@
 #include <Groundfloor/Atoms/GFFreeable.h>
 #include <Groundfloor/Molecules/GFString.h>
 
+#include <cstdint>
+#include <vector>
+
+struct CQuestItemRequired {
+   uint32_t item_id;
+   uint32_t amountrequired;
+};
+
 class CQuest: public TGFFreeable {
 protected:
 
@@ -18,6 +26,8 @@ public:
    
    CQuest();
    ~CQuest();
+
+   std::vector<CQuestItemRequired> getRequiredItems();
 };
 
 #endif //__QUEST_H__

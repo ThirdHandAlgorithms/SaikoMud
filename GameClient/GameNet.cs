@@ -30,6 +30,7 @@ namespace GameClient {
         public event GameNetCallback chatmsginfo;
         public event GameNetCallback questtitlesinfo;
         public event GameNetCallback questtextinfo;
+        public event GameNetExtCallback questitemrequired;
         public event GameNetExtCallback npcinfo;
         public event GameNetCallback dialog;
         public event GameNetCallback earnsxp;
@@ -39,6 +40,8 @@ namespace GameClient {
         public event GameNetExtCallback itemstats;
         public event GameNetDynCallback gearslots;
         public event GameNetExtCallback playerinfo;
+
+        public event GameNetDynCallback bagslots;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -54,6 +57,7 @@ namespace GameClient {
         public const UInt32 c_interact_greet = 0x20000020;
         public const UInt32 c_interact_getquesttitles = 0x20000021;
         public const UInt32 c_interact_getquesttext = 0x20000022;
+        //public const UInt32 c_interact_getquestitemsrequired = 0x20000023;
 
         public const UInt32 c_radar_getnearbynpcs = 0x00000101;
         public const UInt32 c_radar_getnearbyplayers = 0x00000102;
@@ -63,6 +67,12 @@ namespace GameClient {
 
         public const UInt32 c_info_getiteminfo = 0x20000301;
         public const UInt32 c_info_getgearslots = 0x30400001;
+        public const UInt32 c_self_getbagslots = 0x00000411;
+
+        // todo
+        //#define c_info_equipitem 0x60400002
+        //#define c_info_dequipitem 0x60400003
+        //#define c_info_deletefrombagslots 0x30410002
 
         // responses
         public const UInt32 c_response_lastactioninfo = 0x30010000;
@@ -87,11 +97,13 @@ namespace GameClient {
 
         public const UInt32 c_response_questtitle = 0x30130000;
         public const UInt32 c_response_questtext = 0x30140000;
+        public const UInt32 c_response_questitemrequired = 0x30150000;
 
         public const UInt32 c_response_iteminfo = 0x70300001;
         public const UInt32 c_response_itemstats = 0x70300002;
 
         public const UInt32 c_response_gearslots = 0x80400001;
+        public const UInt32 c_response_bagslots = 0x80410001;
 
         public const UInt32 c_response_playerinfo = 0x70210001;
 
@@ -308,6 +320,10 @@ namespace GameClient {
                     gearslots.Invoke(command, intarr, strarr);
                 } else if (command == c_response_playerinfo) {
                     playerinfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
+                } else if (command == c_response_questitemrequired) {
+                    questitemrequired.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
+                } else if (command == c_response_bagslots) {
+                    bagslots.Invoke(command, intarr, strarr);
                 }
                 
             } catch {

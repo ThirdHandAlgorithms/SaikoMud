@@ -173,7 +173,7 @@ void CCharacter::loadBagslots() {
    if (baglock.lockWhenAvailable()) {
       bagslots.clear();
 
-      TGFString sql("select item_id from `bagslot` where char_id=:id");
+      TGFString sql("select item_id, stacksize from `bagslot` where char_id=:id");
       TMySQLSquirrel qry(this->conn);
       qry.setQuery(&sql);
       qry.findOrAddParam("id")->setInteger(this->id);
@@ -184,9 +184,13 @@ void CCharacter::loadBagslots() {
          if ( qry.next() ) {
             qry.fetchRecord(&rec);
             
-            //if (bagslots.size() < this->maxbagslots.get()) { // should be correct in database.....
-            bagslots.push_back( rec.getValue(0)->asInteger() );
-            //}
+            long c = rec.getValue(1)->asInteger();
+
+            for (long i = 0; i < c; i++) {
+               //if (bagslots.size() < this->maxbagslots.get()) { // should be correct in database.....
+               bagslots.push_back( rec.getValue(0)->asInteger() );
+               //}
+            }
          }
 
          qry.close();

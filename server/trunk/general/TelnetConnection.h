@@ -20,6 +20,7 @@
 #define c_interact_greet 0x20000020
 #define c_interact_getquesttitles 0x20000021
 #define c_interact_getquesttext 0x20000022
+#define c_interact_getquestitemsrequired 0x20000023
 
 #define c_radar_getnearbynpcs 0x00000101
 #define c_radar_getnearbyplayers 0x00000102
@@ -30,8 +31,9 @@
 #define c_info_getiteminfo 0x20000301
 #define c_info_getitemstats 0x20000302
 
+
 #define c_info_getgearslots 0x30400001
-//#define c_info_equipitem 0x60400002
+//#define c_info_equipitem 0x60400002     // 6 means... 4+2+0... --> intcommand + bExtIntParamCommand ... 
 //#define c_info_dequipitem 0x60400003
 
 #define c_self_getbagslots 0x00000411
@@ -58,6 +60,7 @@
 
 #define c_response_questtitle 0x30130000
 #define c_response_questtext 0x30140000
+#define c_response_questitemrequired 0x30150000
 
 //#define c_response_completedquest 0x3015000
 
@@ -94,6 +97,7 @@ protected:
    void inform_lastaction();
    void inform_questtitle(uint32_t iQuestId, TGFString *s);
    void inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp);
+   void inform_questitemrequired(uint32_t iQuestId, uint32_t item_id, uint32_t iNumberRequired, TGFString *sItemName);
    void inform_npcinfo(uint32_t iWorldId, TGFString *s, uint32_t x, uint32_t y);
    void inform_npcdialog(uint32_t iWorldId, TGFString *s);
    bool inform_iteminfo(uint32_t iItemId);
