@@ -12,6 +12,8 @@
 CTelnetConnection::CTelnetConnection( TJRBaseSocket *aSocket ) : TJRThreadedConnection(aSocket) {
    bBinaryMode = false;
 
+   iLastTimeSentMap = 0;
+
    this->gameintf.nickname.set(aSocket->getRemoteAddress()->ip.getValue());
 
    TGFString welcome("Hi, type /2 text - for chat, /q for quiting, /n nickname - to change your tmpnick, /l user pass - to login\r\n");
@@ -816,15 +818,20 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
 
             this->inform_lastaction();
 
-            if (bActionOk) {
-               // todo: ... what to do?
+            if (bActionOk || bMovementActionOk) {
+               if (bMovementActionOk) {
+                  this->inform_map();
+               } else if (iLastTimeSentMap + 1 <= GFGetTimestamp()) {
+                  this->inform_map();
+
+                  iLastTimeSentMap = GFGetTimestamp();
+               }
             }
 
             if (bMovementActionOk) {
                if (!bNoRoomInfo) {
                   this->inform_currentroom();
                }
-               this->inform_map();
 
                TGFVector v;
                v.autoClear = false;

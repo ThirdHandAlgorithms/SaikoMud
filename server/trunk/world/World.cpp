@@ -469,29 +469,19 @@ void CWorld::loadNeededQuests(CNPCharacter *cNpc) {
 }
 
 long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
-   long xp = 0;
+   long xp = q->rewards_xp;
 
-   TGFString sql("insert into `questhistory` ( char_id, quest_id, dt_completed) values (:char_id,:quest_id,:dt_completed)");
-   TMySQLSquirrel qry(this->conn);
-   qry.setQuery(&sql);
-   qry.findOrAddParam("char_id")->setInteger(cFor->id);
-   qry.findOrAddParam("quest_id")->setInteger(q->id);
-   qry.findOrAddParam("dt_completed")->setInt64(GFGetTimestamp());
-   if (qry.open()) {
-      qry.close();
-
-      xp = q->rewards_xp;
-      cFor->xp.lockedAdd(xp);
-      
+   if (cFor->completeQuest(q->id, xp)) {
       Global_CharacterUpdate()->schedule(cFor);
 
       // xp earned message before sql update :S - oh well...
       CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
       if (tc != NULL) {
+         // inform player
          tc->inform_earnxp(xp, cFor->xp.get());
       }
    } else {
-      // do update?
+      // some error happened.. pretend we didn't notice for the time being..
    }
 
    return xp;
@@ -559,17 +549,79 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
       // earn fixed quest items that are dropped by npc (if you have the quest)
       std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
       for (int i = 0; i < questdrops.size(); i++) {
-         //if ( cKilledBy->isOnQuest() ) {}
-         bEarnedItems = true;
+         bool bEarnedThisItem = false;
 
-         if ( !cKilledBy->addToBags(questdrops[i]) ) {
-            bNotEnoughBagspace = true;
+         CItem *item = this->getItem(questdrops[i]);
+         if (item != NULL) {
+
+            // .. get list of quests that need this item
+            // .. check if player is one of these quests
+            // .. put item in bag if player has one of the quest
+            
+            // .. if the item is not part of a quest (but was returned because it has 100% dropchance) -> still add to bag as long as there is space  <-- not covered by query
+
+            /// use select join, otherwise this will be too slow
+
+            //this->IsItemUsedInQuestThatPlayerPickedUp()
+            TGFString sql(
+               "select quest_item.amountrequired, quest_item.quest_id, questhistory.dt_pickedup, questhistory.dt_completed \
+               from quest_item \
+               left outer join questhistory on (questhistory.quest_id=quest_item.quest_id and questhistory.char_id=:char_id) \
+               where quest_item.item_id=:item_id"
+            );
+
+            TMySQLSquirrel qry(Global_DBConnection());
+            qry.setQuery(&sql);
+
+            qry.findOrAddParam("char_id")->setInteger(cKilledBy->id);
+            qry.findOrAddParam("item_id")->setInteger(item->id);
+
+            TSquirrelReturnData err;
+            if (qry.open(&err) ) {
+               TGFBFields flds;
+               TGFBRecord rec;
+
+               qry.fetchFields(&flds);
+
+               int c = 0;
+
+               // can return multiple quest's that need this item
+               while (qry.next()) {
+                  c++;
+
+                  qry.fetchRecord(&rec);
+
+                  __int64 ts = rec.getValue(flds.getFieldIndex_ansi("dt_pickedup"))->asTimestamp();      // does this return 0 when it's value is NULL?
+                  if (ts > 0) {
+                     ts = rec.getValue(flds.getFieldIndex_ansi("dt_completed"))->asTimestamp();
+                     if (ts == 0) {
+                        bEarnedThisItem = true;
+                        break;
+                     }
+                  }
+
+               }
+
+               if (c == 0) {
+                  // no quests uses this item, so you can just have it
+                  bEarnedThisItem = true;
+               }
+            }
+         }
+
+         if ( bEarnedThisItem ) {
+            bEarnedItems = true;
+            if ( !cKilledBy->addToBags(questdrops[i]) ) {
+               bNotEnoughBagspace = true;
+            }
          }
       }
 
       Global_CharacterUpdate()->schedule(cKilledBy);
-
+      
       if (bEarnedItems) {
+         Global_CharacterUpdate()->scheduleBagSave(cKilledBy);
+
          // todo: signal for new items
       }
 
@@ -599,6 +651,8 @@ bool CWorld::getQuestStory(long iQuestId, CCharacter *cFor, TGFString *sStory, l
    CQuest *q = this->getQuest(iQuestId);
    if (q != NULL) {
       if (q->id == iQuestId) {
+         cFor->pickupQuest(iQuestId);
+
          sStory->setValue(&(q->story));
 
          *rewards_xp = q->rewards_xp;

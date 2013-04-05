@@ -9,6 +9,7 @@
 class CCharacterUpdate: public TGFThread {
 protected:
    TGFFifoVector queue;
+   TGFFifoVector queueBagSave;
 
 public:
    CCharacterUpdate();
@@ -17,6 +18,7 @@ public:
    void execute();
 
    void schedule( CCharacter *pChar );
+   void scheduleBagSave( CCharacter *pChar );
 };
 
 #endif //__CHARACTERUPDATE_H__
