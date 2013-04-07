@@ -479,7 +479,7 @@ bool CTelnetConnection::inform_self_bagslots() {
    return false;
 }
 
-void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s) {
+void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s, bool bCanComplete) {
    TGFString tmp(s);
 
    if (!bBinaryMode) {
@@ -488,7 +488,11 @@ void CTelnetConnection::inform_questtitle(uint32_t iQuestId, TGFString *s) {
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_questtitle, iQuestId, 0, &tmp);
+      uint32_t args = 0;
+      if (bCanComplete) {
+         args |= 0x01;
+      }
+      this->sendBin(c_response_questtitle, iQuestId, args, &tmp);
    }
 }
 
@@ -809,7 +813,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                if ( c != -1 ) {
                   for (int i = 0; i < c; i++) {
                      CQuest *q = static_cast<CQuest *>(v.elementAt(i));
-                     this->inform_questtitle(q->id, &(q->title));
+                     bool b = this->gameintf.canCompleteQuest(q);
+                     this->inform_questtitle(q->id, &(q->title), q->autocomplete || b);
                   }
                }
                

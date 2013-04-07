@@ -95,7 +95,7 @@ protected:
 
    void inform_currentroom();
    void inform_lastaction();
-   void inform_questtitle(uint32_t iQuestId, TGFString *s);
+   void inform_questtitle(uint32_t iQuestId, TGFString *s, bool bCanComplete);
    void inform_questtext(uint32_t iQuestId, TGFString *s, long rewards_xp);
    void inform_questitemrequired(uint32_t iQuestId, uint32_t item_id, uint32_t iNumberRequired, TGFString *sItemName);
    void inform_npcinfo(uint32_t iWorldId, TGFString *s, uint32_t x, uint32_t y);

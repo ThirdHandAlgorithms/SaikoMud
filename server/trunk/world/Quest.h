@@ -5,7 +5,7 @@
 #include <Groundfloor/Atoms/GFFreeable.h>
 #include <Groundfloor/Molecules/GFString.h>
 
-#include <cstdint>
+#include <stdint.h>
 #include <vector>
 
 struct CQuestItemRequired {
