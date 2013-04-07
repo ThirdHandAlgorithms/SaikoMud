@@ -27,6 +27,7 @@ namespace GameClient {
         public UInt32 QuestID;
         public String Title;
         public String Text;
+        public bool CanComplete;
 
         public List<CLinkedItem> RequiredItems = new List<CLinkedItem>();
 
@@ -648,6 +649,8 @@ namespace GameClient {
             CQuest q = new CQuest();
             q.QuestID = intparam1;
             q.Title = str;
+
+            q.CanComplete = (intparam2 & 0x01) > 0;
 
             QuestsAvailable.Add(q);
 
