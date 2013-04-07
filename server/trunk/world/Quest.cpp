@@ -39,7 +39,7 @@ std::vector<CQuestItemRequired> CQuest::getRequiredItems() {
       
       if (qry.next()){
          qry.fetchRecord(&rec);
-         unsigned __int64 itemid = rec.getValue(0)->asInt64();
+         __int64 itemid = rec.getValue(0)->asInt64();
          unsigned long amountrequired = rec.getValue(1)->asInteger();
 
          arr.push_back( make_itemreq(itemid, amountrequired) );

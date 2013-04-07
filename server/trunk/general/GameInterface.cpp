@@ -162,6 +162,28 @@ uint32_t CGameInterface::GetLastActionInfo(TGFString *s) {
    return 0;
 }
 
+bool CGameInterface::canCompleteQuest(CQuest *q) {
+   this->DoChecks();
+
+   if (this->loggedInCharacter != NULL) {
+      std::vector<CQuestItemRequired> reqs = q->getRequiredItems();
+      
+      bool b = true;
+
+      for(std::vector<CQuestItemRequired>::iterator it = reqs.begin(); it != reqs.end(); ++it) {
+         b &= this->loggedInCharacter->hasItemInBags(it->item_id, it->amountrequired);
+
+         if (!b) {
+            break;
+         }
+      }
+
+      return b;
+   }
+
+   return false;
+}
+
 // character actions
 bool CGameInterface::run_walkforward() {
    this->DoChecks();

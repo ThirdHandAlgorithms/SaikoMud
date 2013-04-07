@@ -257,6 +257,22 @@ void CCharacter::saveBagslots() {
    }
 }
 
+bool CCharacter::hasItemInBags(unsigned long iItemId, unsigned int iAmount) {
+   bool iCount = 0;
+
+   if (baglock.lockWhenAvailable()) {
+      for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+          if (*it == iItemId) {
+             iCount++;
+          }
+      }
+
+      baglock.unlock();
+   }
+
+   return (iCount == iAmount);
+}
+
 bool CCharacter::addToBags(unsigned long iItemId) {
    bool b = false;
 

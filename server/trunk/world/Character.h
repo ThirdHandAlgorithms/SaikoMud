@@ -55,6 +55,7 @@ public:
    void save();
    void saveBagslots();
 
+   bool hasItemInBags(unsigned long iItemId, unsigned int iAmount);
    bool addToBags(unsigned long iItemId);
    bool takeFromBags(unsigned long iItemId);
 
