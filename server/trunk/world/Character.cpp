@@ -130,6 +130,7 @@ int CCharacter::getItemsInSlots(TGFVector *v) {
    if ( qry.open(&err) ) {
       TGFBRecord rec;
       while ( qry.next() ) {
+         // todo: get item from Global_World() caching functions
          CItem *item = new CItem();
          item->loadFromRecord(&qry);
 
@@ -149,6 +150,51 @@ int CCharacter::getItemsInSlots(TGFVector *v) {
    }
 
    return c;
+}
+
+bool CCharacter::updateItemIntoSlot(int iSlotId, __int64 iItemId) {
+   bool bDoUpdate = false;
+
+   TGFString sql(
+      "INSERT INTO charslots ( char_id, slot_id, item_id) VALUES (:char_id,:slot_id,:item_id)"
+   );
+
+   TMySQLSquirrel qry(this->conn);
+   qry.setQuery(&sql);
+   qry.findOrAddParam("item_id")->setInteger(iItemId);
+   qry.findOrAddParam("char_id")->setInteger(this->id);
+   qry.findOrAddParam("slot_id")->setInteger(iSlotId);
+   TSquirrelReturnData err;
+   if ( qry.open(&err) ) {
+      qry.close();
+
+      return true;
+   } else {
+      if (err.errorstring.pos_ansi(0, "Duplicate entry") != -1) {
+         bDoUpdate = true;
+      } else {
+         printf("CCharacter::updateItemIntoSlot(): %s (%s)\n", err.errorstring.getValue(), sql.getValue());
+      }
+   }
+
+   if (bDoUpdate) {   // affected doesn't work for Update queries???
+      sql.setValue_ansi("UPDATE charslots SET item_id=:item_id WHERE char_id=:char_id AND slot_id=:slot_id");
+      qry.setQuery(&sql);
+         
+      qry.findOrAddParam("item_id")->setInteger(iItemId);
+      qry.findOrAddParam("char_id")->setInteger(this->id);
+      qry.findOrAddParam("slot_id")->setInteger(iSlotId);
+
+      if ( qry.open(&err) ) {
+         qry.close();
+
+         return true;
+      } else {
+         printf("CCharacter::updateItemIntoSlot(): %s (%s)\n", err.errorstring.getValue(), sql.getValue());
+      }
+   }
+
+   return false;
 }
 
 void CCharacter::load() {
@@ -305,6 +351,55 @@ bool CCharacter::takeFromBags(unsigned long iItemId) {
       }
 
       baglock.unlock();
+   }
+
+   return b;
+}
+
+bool CCharacter::equipItem(const CItem *item) {
+   bool b = false;   // return false when item is not in bags
+
+   __int64 iItemId = item->id;
+   TGFVector v;
+
+   // determine destination slot
+   unsigned int iSlotId = item->charslot_id;
+   if (iSlotId > 0) {
+      // all protected by appropriate mutexes
+      if (baglock.lockWhenAvailable()) {
+
+         for (std::vector<unsigned long>::iterator it = bagslots.begin(); it != bagslots.end(); ++it) {
+            // check if item is in bags
+             if (*it == iItemId) {
+                // check if slot is occupied
+                int c = this->getItemsInSlots(&v);
+
+                CItem *slotitem = static_cast<CItem *>(v.elementAt(iSlotId - 1));
+                if (slotitem == NULL) {
+                   if (updateItemIntoSlot(iSlotId, iItemId)) {
+                      // if not, place item in slot, remove from bags
+                      bagslots.erase(it);
+
+                      b = true;
+                   }
+                } else {
+                   if (updateItemIntoSlot(iSlotId, iItemId)) {
+                      // if it is, replace bag slot with item in item slot
+                      *it = slotitem->id;
+
+                      b = true;
+                   }
+                }
+
+                break;
+             }
+         }
+
+         // save to db
+         this->saveBagslots();
+
+         baglock.unlock();
+      }
    }
 
    return b;

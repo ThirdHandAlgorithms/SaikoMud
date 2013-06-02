@@ -260,6 +260,29 @@ bool CGameInterface::run_walkright() {
 	return false;
 }
 
+bool CGameInterface::equip_itemfrombags(uint32_t iItemId) {
+   this->DoChecks();
+
+   CItem *item = Global_World()->getItem(iItemId);
+   if (item != NULL) {
+      return this->loggedInCharacter->equipItem(item);
+   }
+}
+
+bool CGameInterface::dequip_item(uint32_t iItemId) {
+   return false;
+}
+
+uint32_t CGameInterface::getPlayerWorldId() {
+   this->DoChecks();
+
+   if (this->loggedInCharacter != NULL) {
+      return this->loggedInCharacter->WorldId;
+   }
+
+   return 0;
+}
+
 // special GM actions
 bool CGameInterface::run_teleport( long x, long y ) {
    this->DoChecks();
@@ -391,19 +414,27 @@ void CGameInterface::StartCombatDummy() {
 int CGameInterface::radar_getNearbyNpcs(TGFVector *v) {
    this->DoChecks();
 
-   long x = this->loggedInCharacter->x.get();
-   long y = this->loggedInCharacter->y.get();
+   if (this->loggedInCharacter != NULL) {
+      long x = this->loggedInCharacter->x.get();
+      long y = this->loggedInCharacter->y.get();
 
-   return Global_World()->getNpcsInRoom_fromdb(x, y, v);
+      return Global_World()->getNpcsInRoom_fromdb(x, y, v);
+   }  else {
+      return 0;
+   }
 }
 
 int CGameInterface::radar_getNearbyPlayers(TGFVector *v) {
    this->DoChecks();
 
-   long x = this->loggedInCharacter->x.get();
-   long y = this->loggedInCharacter->y.get();
+   if (this->loggedInCharacter != NULL) {
+      long x = this->loggedInCharacter->x.get();
+      long y = this->loggedInCharacter->y.get();
 
-   return Global_World()->getNearbyPlayers(x, y, 5, v, this->loggedInCharacter);
+      return Global_World()->getNearbyPlayers(x, y, 5, v, this->loggedInCharacter);
+   } else {
+      return 0;
+   }
 }
 
 
