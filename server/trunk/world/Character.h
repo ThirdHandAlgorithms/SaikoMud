@@ -13,6 +13,8 @@
 #include "Quest.h"
 #include "../combat/Combat.h"
 
+#include "Items.h"
+
 #include <vector>
 
 class CCharacter: public CCombatant {
@@ -31,6 +33,8 @@ protected:
    void loadBagslots();
    
    void loadActionSlots();
+
+   bool updateItemIntoSlot(int iSlotId, __int64 iItemId);
 
    void loadFromRecord(TMySQLSquirrel *pQuery);
 public:
@@ -58,6 +62,8 @@ public:
    bool hasItemInBags(unsigned long iItemId, unsigned int iAmount);
    bool addToBags(unsigned long iItemId);
    bool takeFromBags(unsigned long iItemId);
+
+   bool equipItem(const CItem *item);
 
    std::vector<unsigned long> getBagSlots() const;
 

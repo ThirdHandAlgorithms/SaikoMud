@@ -415,9 +415,15 @@ bool CTelnetConnection::inform_gearslots(uint32_t iWorldId) {
    std::vector<uint32_t> intarr;
    TGFStringVector strarr;
 
-   CCharacter *c = Global_World()->getCharacter(iWorldId);
+   CCharacter *c = NULL;
+   if (iWorldId == 0) {
+      c = Global_World()->getCharacter( this->gameintf.getPlayerWorldId() );
+   } else {
+      c = Global_World()->getCharacter(iWorldId);
+   }
+
    if (c != NULL) {
-      intarr.push_back(iWorldId);
+      intarr.push_back(c->WorldId);
       strarr.addChunk(new TGFString(c->name.link()));
 
       TGFVector v;
@@ -854,6 +860,16 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             } else if (command == c_interact_getquestitemsrequired) {
                // ... todo
                // implemented in c_interact_getquesttext
+            } else if (command == c_info_equipitem) {
+               bActionOk = this->gameintf.equip_itemfrombags(intparam1);
+               if (bActionOk) {
+                  // does this work... ?
+                  this->inform_gearslots(0);
+                  this->inform_self_bagslots();
+                  this->gameintf.inform_SelfAboutAllStats();
+               }
+            } else if (command == c_info_dequipitem) {
+               bActionOk = this->gameintf.dequip_item(intparam1);
             }
 
             this->inform_lastaction();

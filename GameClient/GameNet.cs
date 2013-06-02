@@ -70,8 +70,8 @@ namespace GameClient {
         public const UInt32 c_self_getbagslots = 0x00000411;
 
         // todo
-        //#define c_info_equipitem 0x60400002
-        //#define c_info_dequipitem 0x60400003
+        public const UInt32 c_info_equipitem = 0x60400002;
+        public const UInt32 c_info_dequipitem = 0x60400003;
         //#define c_info_deletefrombagslots 0x30410002
 
         // responses

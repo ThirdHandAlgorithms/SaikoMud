@@ -33,8 +33,8 @@
 
 
 #define c_info_getgearslots 0x30400001
-//#define c_info_equipitem 0x60400002     // 6 means... 4+2+0... --> intcommand + bExtIntParamCommand ... 
-//#define c_info_dequipitem 0x60400003
+#define c_info_equipitem 0x60400002     // 6 means... 4+2+0... --> intcommand + bExtIntParamCommand ... 
+#define c_info_dequipitem 0x60400003
 
 #define c_self_getbagslots 0x00000411
 //#define c_info_deletefrombagslots 0x30410002

@@ -66,6 +66,12 @@ public:
 
    int getOwnBagSlots(TGFVector *v);
 
+   bool equip_itemfrombags(uint32_t iItemId);
+   bool dequip_item(uint32_t iItemId);
+
+   uint32_t getPlayerWorldId();
+
+
    // special GM actions
    bool run_teleport( long x, long y );
 

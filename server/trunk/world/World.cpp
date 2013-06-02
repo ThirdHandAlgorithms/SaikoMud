@@ -548,7 +548,7 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
 
       // earn fixed quest items that are dropped by npc (if you have the quest)
       std::vector<unsigned long> questdrops = npc->getPossibleQuestDrops();
-      for (int i = 0; i < questdrops.size(); i++) {
+      for (unsigned int i = 0; i < questdrops.size(); i++) {
          bool bEarnedThisItem = false;
 
          CItem *item = this->getItem(questdrops[i]);
@@ -574,7 +574,7 @@ void CWorld::handleDeath(CCharacter *cFor, CCharacter *cKilledBy) {
             qry.setQuery(&sql);
 
             qry.findOrAddParam("char_id")->setInteger(cKilledBy->id);
-            qry.findOrAddParam("item_id")->setInteger(item->id);
+            qry.findOrAddParam("item_id")->setInt64(item->id);
 
             TSquirrelReturnData err;
             if (qry.open(&err) ) {

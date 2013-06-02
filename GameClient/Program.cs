@@ -16,85 +16,7 @@ using System.Windows.Forms;
 using System.Timers;
 
 namespace GameClient {
-
-    class CLinkedItem {
-        public UInt32 item_id;
-        public UInt32 amount;
-        public String str;
-    };
-
-    class CQuest {
-        public UInt32 QuestID;
-        public String Title;
-        public String Text;
-        public bool CanComplete;
-
-        public List<CLinkedItem> RequiredItems = new List<CLinkedItem>();
-
-        public bool IsKnownRequirement(UInt32 item_id) {
-            foreach (var item in this.RequiredItems) {
-                if (item.item_id == item_id) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    };
-
-    class CBaseStats {
-        public UInt32 strength = 0;
-        public UInt32 energy = 0;
-        public UInt32 protection = 0;
-    };
-
-    class CCharSlot {
-        public UInt32 slot_id = 0;
-        public UInt32 item_id = 0;
-        public String item_name = "";
-    }
-
-    class CPositionedChar : CBaseStats {
-        public UInt32 WorldID = 0;
-        public String Nickname = "";
-        public Int32 X;
-        public Int32 Y;
-        public bool isDead = false;
-    };
-
-    class CNPC : CPositionedChar {
-        public String CurrentDialog;
-    };
-
-    class CCharacter : CPositionedChar {
-        public CCharSlot slot1 = null;
-        public CCharSlot slot2 = null;
-        public CCharSlot slot3 = null;
-        public CCharSlot slot4 = null;
-        public CCharSlot slot5 = null;
-    };
-
-    class CAnotherPlayer : CCharacter {
-    };
-
-    class CCharSelf : CCharacter {
-        public UInt32 level = 0;
-        public UInt32 totalxp = 0;
-        public UInt32 totalhp = 0;
-        public UInt32 hp = 0;
-
-        public List<CLinkedItem> bagslots = new List<CLinkedItem>();
-    };
-
-    class CItem : CBaseStats {
-        public UInt64 Id = 0;
-        public String Name = "";
-        public List<String> Description;
-        public UInt32 Type = 0;
-        public UInt32 Slot = 0;
-    };
-
-    class Program {
+    class Program: CGameObjects{
         private AnimatedSprite hero = new AnimatedSprite();
         private Size sz = new Size(64, 64);
 
@@ -177,12 +99,7 @@ namespace GameClient {
         private byte RoomEnvType = 0;
 
         private CCharSelf CharSelf = new CCharSelf();
-        private List<CAnotherPlayer> CharactersHere = new List<CAnotherPlayer>();
-        private List<CItem> ItemCache = new List<CItem>();
         private CItem ToolTipItem = null;
-
-        private List<CQuest> QuestsAvailable = new List<CQuest>();
-        private List<CNPC> NPCsAvailable = new List<CNPC>();
 
         private String StrCurrentQuestTitle = "";
         private List<String> CurrentQuestText = null;
@@ -214,16 +131,6 @@ namespace GameClient {
 
         static void Main(string[] args) {
             new Program();
-        }
-
-        private CAnotherPlayer FindChar(UInt32 iWorldId) {
-            foreach ( var c in CharactersHere ) {
-                if (c.WorldID == iWorldId) {
-                    return c;
-                }
-            }
-
-            return null;
         }
 
         private void LoadSettings(String sFile) {
@@ -433,7 +340,6 @@ namespace GameClient {
 
                 net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
                 net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
-                CharSelf.bagslots.Clear();
                 net.SendBinToServer(GameNet.c_self_getbagslots, 0, 0, "");
             }
 
@@ -457,6 +363,9 @@ namespace GameClient {
 
         public void OnBagSlots(UInt32 command, List<UInt32> intarr, List<String> strarr) {
             int i = 0;
+            
+            CharSelf.bagslots.Clear();
+
             foreach (var itemid in intarr) {
                 CLinkedItem item = new CLinkedItem();
                 item.item_id = itemid;
@@ -542,20 +451,6 @@ namespace GameClient {
 
         }
 
-        public void CacheItemInfo(CItem item) {
-            this.ItemCache.Add(item);
-        }
-
-        public CItem FindItemInCache(UInt32 itemid) {
-            foreach (var item in this.ItemCache) {
-                if (item.Id == itemid) {
-                    return item;
-                }
-            }
-
-            return null;
-        }
-
         public void OnItemInfo(UInt32 command, UInt32 itemid, UInt32 reserved, String sItemNameAndDescription, UInt32 iType, UInt32 iSlot) {
             // sItemNameAndDescription separated by |
 
@@ -594,54 +489,18 @@ namespace GameClient {
             net.SendBinToServer(GameNet.c_radar_getnearbynpcs, 0, 0, "");
         }
 
-        public CNPC FindKnownNPC(UInt32 iWorldId) {
-            foreach (CNPC npc in NPCsAvailable) {
-                if (npc.WorldID == iWorldId) {
-                    return npc;
-                }
-            }
-
-            return null;
-        }
-
-        public CNPC FindOrAddNPC(UInt32 iWorldID) {
-            CNPC npcobj = FindKnownNPC(iWorldID);
-            if (npcobj == null) {
-                npcobj = new CNPC();
-                npcobj.WorldID = iWorldID;
-                npcobj.CurrentDialog = "";
-            }
-
-            return npcobj;
-        }
-
-        public void OnNPCInfo(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str, UInt32 currentx, UInt32 currenty) {
-            CNPC npc = FindOrAddNPC(intparam1);
-            npc.Nickname = str;
-            npc.X = (Int32)currentx;
-            npc.Y = (Int32)currenty;
-
-            NPCsAvailable.Add(npc);
+        public void OnNPCInfo(UInt32 command, UInt32 iWorldId, UInt32 intparam2, String sNick, UInt32 currentx, UInt32 currenty) {
+            UpdateNPCInfo(iWorldId, sNick, (Int32)currentx, (Int32)currenty);
         }
 
         public void OnPlayerInfo(UInt32 command, UInt32 worldid, UInt32 reserved, String name, UInt32 lastknownx, UInt32 lastknowny) {
-            CAnotherPlayer c = FindChar(worldid);
-            if (c == null) {
-                c = new CAnotherPlayer();
-                CharactersHere.Add(c);
-            }
-            c.WorldID = worldid;
-            c.Nickname = name;
-            c.X = (Int32)lastknownx;
-            c.Y = (Int32)lastknowny;
+            UpdatePlayerInfo(worldid, name, (Int32)lastknownx, (Int32)lastknowny);
         }
 
         public void OnDialog(UInt32 command, UInt32 intparam1, UInt32 intparam2, String str) {
-            foreach (CNPC npc in NPCsAvailable) {
-                if (npc.WorldID == intparam1) {
-                    npc.CurrentDialog = str;
-                    break;
-                }
+            var npc = FindKnownNPC(intparam1);
+            if (npc != null) {
+                npc.CurrentDialog = str;
             }
         }
 
@@ -785,30 +644,13 @@ namespace GameClient {
             return PrepareStringForDisplay(s, font_questtext, 450);
         }
 
-        public CQuest GetKnownQuest(UInt32 iQuestId) {
-            foreach (var q in QuestsAvailable) {
-                if (q.QuestID == iQuestId) {
-                    return q;
-                }
-            }
-
-            return null;
-        }
-
         public void OnQuestItemRequired(UInt32 command, UInt32 iQuestId, UInt32 iItemId, String str, UInt32 iAmountRequired, UInt32 reserved) {
             // c_response_questitemrequired
 
             CQuest q = GetKnownQuest(iQuestId);
             if (q != null) {
-                if (!q.IsKnownRequirement(iItemId)) {
-                    CLinkedItem req = new CLinkedItem();
-                    req.item_id = iItemId;
-                    req.amount = iAmountRequired;
-                    req.str = str;
-                    q.RequiredItems.Add(req);
-                }
+                q.UpdateRequirement(iItemId, iAmountRequired, str);
             }
-
         }
 
         public void OnQuestTextInfo(UInt32 command, UInt32 iQuestId, UInt32 intparam2, String str) {
@@ -1802,7 +1644,11 @@ namespace GameClient {
                     break;
                 case Key.Space:
                     // todo: getnpcname and id, start interaction
-                    if (CurrentNPC != 0) {
+                    if (CurrentQuestId != 0) {
+                        if (DoesCharMeetQuestRequirements(CharSelf, CurrentQuestId)) {
+                            //net.SendBinToServer(GameNet.c_
+                        }
+                    } else if (CurrentNPC != 0) {
                         if (this.QuestsAvailable.Count() > 0) {
                             net.SendBinToServer(GameNet.c_interact_getquesttext, this.QuestsAvailable[0].QuestID, 0, "");
                         }
@@ -1823,6 +1669,12 @@ namespace GameClient {
                     break;
                 case Key.Q:
                     Events.QuitApplication();
+                    break;
+                case Key.R:
+                    // test equip first item in bags
+                    if (CharSelf.bagslots.Count > 0) {
+                        net.SendBinToServer(GameNet.c_info_equipitem, CharSelf.bagslots[0].item_id, 0, "");
+                    }
                     break;
             }
         }
