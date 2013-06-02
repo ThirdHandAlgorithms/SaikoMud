@@ -56,6 +56,7 @@ namespace GameClient {
         private Rectangle SlotsAndStatsArea = new Rectangle();
         private Rectangle InfoBoxArea = new Rectangle();
         private Rectangle RoomInfoTextArea = new Rectangle();
+        private Rectangle BagslotTextAreaTopLeft = new Rectangle();
 
         private Rectangle StatsTextArea = new Rectangle();
 
@@ -993,12 +994,19 @@ namespace GameClient {
             BagslotTextArea.X += 10;
             BagslotTextArea.Y += 10;
 
+            BagslotTextAreaTopLeft.X = BagslotTextArea.X;
+            BagslotTextAreaTopLeft.Y = BagslotTextArea.Y;
+            BagslotTextAreaTopLeft.Width = BagslotTextArea.Width;
+            BagslotTextAreaTopLeft.Height = 0;
+
             if (CharSelf != null) {
                 foreach (var item in CharSelf.bagslots) {
                     Surface title = font_iteminfo.Render(item.str, Color.Black);
                     BufferSurface.Blit(title, BagslotTextArea);
 
                     BagslotTextArea.Y += title.Height;
+
+                    BagslotTextAreaTopLeft.Height += title.Height;
                 }
             }
         }
@@ -1485,6 +1493,32 @@ namespace GameClient {
 
         private void Events_MouseMotion(object sender, MouseMotionEventArgs e) {
             bool bShowItemTooltip = false;
+
+            if (
+                (e.X >= BagslotTextAreaTopLeft.X) && (e.Y >= BagslotTextAreaTopLeft.Y) &&
+                (e.X <= BagslotTextAreaTopLeft.Right) && (e.Y <= BagslotTextAreaTopLeft.Bottom)
+            ) {
+                int iAvgItemTextHeight = BagslotTextAreaTopLeft.Height / CharSelf.bagslots.Count;
+
+                int iBagSlotId = (e.Y - BagslotTextAreaTopLeft.Y) / iAvgItemTextHeight;
+
+                if (iBagSlotId < CharSelf.bagslots.Count) {
+                    CLinkedItem bagslotitem = CharSelf.bagslots[iBagSlotId];
+                    if (bagslotitem != null) {
+                        ToolTipLocation.X = e.X;
+                        ToolTipLocation.Y = e.Y;
+                        CItem item = FindItemInCache(bagslotitem.item_id);
+                        if (item == null) {
+                            if (LastItemRequest.AddSeconds(2) < DateTime.Now) {
+                                net.SendBinToServer(GameNet.c_info_getiteminfo, bagslotitem.item_id, 0, "");
+                            }
+                        } else {
+                            ToolTipItem = item;
+                            bShowItemTooltip = true;
+                        }
+                    }
+                }
+            }
 
             if (((e.X >= Slot1Area.X) && (e.X <= Slot1Area.Right)) &&
                 ((e.Y >= Slot1Area.Y) && (e.Y <= Slot1Area.Bottom))
