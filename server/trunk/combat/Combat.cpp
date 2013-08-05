@@ -17,9 +17,13 @@
 CCombatant::CCombatant() : TGFFreeable() {
    combattimer = NULL;
    swingslices = 0;
-   cooldownslices = 0;
+   cooldownslices = -1;
    combat = NULL;
    maintarget = NULL;
+   spellcastslices = 0;
+   iscasting = false;
+   castingspell = NULL;
+   spelltarget = NULL;
 
    // barehanded default swingtimer
    autoattackswingtime = 3000;
@@ -42,8 +46,30 @@ void CCombatant::resetSwing() {
    swingslices = 0;
 }
 
+void CCombatant::resetSpellcast() {
+   spellcastslices = 0;
+}
+
 void CCombatant::resetCooldown() {
    cooldownslices = 0;
+}
+
+bool CCombatant::startCasting(const CSpell *spell, CCombatant *target) {
+   if ( sliceslock.lockWhenAvailable() ) {
+      this->castingspell = spell;
+      this->spelltarget = target;
+
+      this->spellcastslices = spell->casttime;
+      this->cooldownslices = -1;
+
+      this->resetSwing();
+
+      this->iscasting = true;
+
+      sliceslock.unlock();
+   }
+
+   return true;
 }
 
 void CCombatant::enterCombat(CCombat *c, bool bOffsetHalf) {
@@ -85,8 +111,13 @@ void CCombatant::setLevel( unsigned int l ) {
 void CCombatant::onTimer( TGFFreeable *obj ) {
    if ( sliceslock.lockWhenAvailable() ) {
       long slice = 100;
-      cooldownslices += slice;
       swingslices += slice;
+
+      if (iscasting) {
+         spellcastslices -= slice;
+      } else if (cooldownslices >= 0) {
+         cooldownslices -= slice;
+      }
 
       if (swingslices == 0) {
          swingslices = 1;
@@ -131,6 +162,17 @@ int CCombatant::rollAutoattackDamage() {
    return basedamage + deviation;
 }
 
+int CCombatant::rollSpellDamage() {
+   int basedamage = castingspell->basedamage;
+
+   int roll = combat->getDiceRoll();
+   int deviation = roll % (int)floor(basedamage * 0.1);
+
+   // -100 + -10 = -110
+   // 100 + 10 = 110
+   return basedamage + deviation;
+}
+
 void CCombatant::interact_autoattack() {
    bool isHit = this->rollHit(maintarget);
    if ( isHit ) {
@@ -146,19 +188,87 @@ void CCombatant::interact_autoattack() {
    }
 }
 
-void CCombatant::doAutoAttack() {
-   if ( sliceslock.lockWhenAvailable() ) {
-      if ( swingslices >= autoattackswingtime ) {
-         resetSwing();
+void CCombatant::interact_spellcast() {
+   bool isHit = true;
+   
+   // always a hit when spell does 0 damage or heals
+   if (castingspell->basedamage > 0) {
+      isHit = this->rollHit(spelltarget);
+   }
+
+   if ( isHit ) {
+      bool isCrit = false;
+
+      // can't crit if the spell does 0 damage
+      if (castingspell->basedamage != 0) {
+         isCrit = this->rollCrit(maintarget);
       }
 
-      if ( swingslices == 0 ) {
-         if ( (maintarget != NULL) && (combat != NULL) ) {
-            if ( maintarget->isAlive() ) {
-               interact_autoattack();
-               swingslices++;
-            } else {
-               combattimer->stop();
+      if ( isCrit ) {
+         if (castingspell->basedamage < 0) {
+            combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_HEALCRIT, this, spelltarget, this->rollSpellDamage() * -1.0 );
+         } else {
+            combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_CRIT, this, spelltarget, floor(this->rollSpellDamage() * 1.5) );
+         }
+      } else {
+         if (castingspell->basedamage < 0) {
+            combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_HEAL, this, spelltarget, this->rollSpellDamage() * -1.0 );
+         } else if (castingspell->basedamage == 0) {
+            combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_AFFECT, this, spelltarget, 0 ); // todo: affect with what???
+         } else {
+            combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_HIT, this, spelltarget, this->rollSpellDamage() );
+         }
+      }
+   } else {
+      combat->doEvent( COMBATSOURCE_SPELL, COMBATEVENT_MISS, this, spelltarget, 0 );
+   }
+}
+
+bool CCombatant::castSpell(const CSpell *spell, CCombatant *target) {
+   if ((spell == NULL) || (target == NULL)) {
+      return false;
+   }
+
+   // check for spell cooldown, can only cast if you're trying to cast within 0.5 (?) seconds of when the cooldown is done
+   if (iscasting) {
+      return false;
+   }
+
+   if (cooldownslices > 500) {
+      return false;
+   }
+
+   // wait until 0-0.5 remaining time and schedule? to cast
+   if (cooldownslices > 0) {
+      GFMillisleep(cooldownslices);
+   }
+
+   // start casting
+   return startCasting(spell, target);
+}
+
+void CCombatant::doAutoAttack() {
+   if ( sliceslock.lockWhenAvailable() ) {
+      // you're either autoattacking or using a spell, not both
+      if (iscasting) {
+         if (spellcastslices <= 0) {
+            interact_spellcast();
+
+            iscasting = false;
+
+            cooldownslices = castingspell->cooldown;
+         }
+      } else if ( swingslices >= autoattackswingtime ) {
+         resetSwing();
+         
+         if ( swingslices == 0 ) {
+            if ( (maintarget != NULL) && (combat != NULL) ) {
+               if ( maintarget->isAlive() ) {
+                  interact_autoattack();
+                  swingslices++;
+               } else {
+                  combattimer->stop();
+               }
             }
          }
       }
@@ -344,6 +454,9 @@ void CCombat::doEvent( int sourcetype, int eventtype, CCombatant *source, CComba
 
    if ( sourcetype == COMBATSOURCE_AUTOATTACK ) {
       combatmsg.replace_ansi("%c", "AUTOATTACK" );
+   } else if ( sourcetype == COMBATSOURCE_SPELL ) {
+      // TODO: spellname?
+      combatmsg.replace_ansi("%c", "SPELL" );
    } else {
       combatmsg.replace_ansi("%c", "UNKNOWN" );
    }

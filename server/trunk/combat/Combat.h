@@ -12,6 +12,7 @@
 #include <Groundfloor/Materials/GFCallbackThread.h>
 
 #include "../combat/CombatStats.h"
+#include "../world/Spells.h"
 
 class CCombat;
 
@@ -22,10 +23,13 @@ class CCombat;
 #define COMBATEVENT_HEAL 5
 #define COMBATEVENT_HEALCRIT 6
 
+#define COMBATEVENT_AFFECT 8
+
 #define COMBATEVENT_DEATH 9
 
 
 #define COMBATSOURCE_AUTOATTACK 0
+#define COMBATSOURCE_SPELL 1
 
 
 class CCombatant: public TGFFreeable {
@@ -37,22 +41,33 @@ protected:
    CCombat *combat;
    CCombatant *maintarget;
 
+   CCombatant *spelltarget;
+
+   bool iscasting;
+   const CSpell *castingspell;
+
    TGFLockable sliceslock;
    long cooldownslices;
    long swingslices;
+   long spellcastslices;
 
    long autoattackswingtime;
 
    void resetSwing();
    void resetCooldown();
+   void resetSpellcast();
+
+   bool startCasting(const CSpell *spell, CCombatant *target);
 
    void doAutoAttack();
 
    bool rollHit( CCombatant *target );
    bool rollCrit( CCombatant *target );
    int rollAutoattackDamage();
+   int rollSpellDamage();
 
    void interact_autoattack();
+   void interact_spellcast();
 
    virtual void calculateStats();
 public:
@@ -77,6 +92,8 @@ public:
    void onTimer( TGFFreeable *obj );
 
    void combatcycle();
+
+   bool castSpell(const CSpell *spell, CCombatant *target);
 
    int affectWithDamage( int combatevent, int amount );
    int affectWithHealing( int combatevent, int amount );
