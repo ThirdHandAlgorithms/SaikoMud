@@ -58,7 +58,7 @@ class TMySQLSquirrel: public TRemoteSQL {
       unsigned long iRecordCount;
       bool bAnsiMode;
 
-      void retreiveFields( TGFBFields *aFields );
+      void retreiveFields( TGFBFields *aFields ) const;
 
       void replaceInQuery( const char *sToken, TGFBValue *aValue, bool bIncludeQuotations = true );
    public:

@@ -115,7 +115,7 @@ unsigned int TMySQLSquirrel::getRecordCount() {
    return iRecordCount;
 }
 
-void TMySQLSquirrel::retreiveFields( TGFBFields *aFields ) {
+void TMySQLSquirrel::retreiveFields( TGFBFields *aFields ) const {
    MYSQL_FIELD *f;
 
    aFields->clear();
