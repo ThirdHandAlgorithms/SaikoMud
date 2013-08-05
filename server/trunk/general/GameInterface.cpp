@@ -352,6 +352,24 @@ bool CGameInterface::attack_start(uint32_t iWorldId) {
    return false;
 }
 
+bool CGameInterface::cast_spell(uint32_t iSpellId, uint32_t iWorldId) {
+   this->DoChecks();
+
+   CCharacter *cTarget = Global_World()->getCharacter(iWorldId);
+   if (cTarget == NULL) {
+      this->sLastactionInfo.setValue_ansi("Error");
+   } else {
+      // TODO: check that when spell hits -> combat is started (opposed to attack_start() where combat starts directly)
+
+      // TODO: put spell in indexed cachearray
+      CSpell *tmp = new CSpell(Global_DBConnection(), iSpellId);
+
+      return this->loggedInCharacter->castSpell(tmp, cTarget);
+   }
+
+   return false;
+}
+
 bool CGameInterface::interact_greet(uint32_t iCharId, TGFString *sGreeting) {
    this->DoChecks();
 

@@ -112,9 +112,11 @@ namespace GameClient {
         public const UInt32 COMBATEVENT_CRIT = 3;
         public const UInt32 COMBATEVENT_HEAL = 5;
         public const UInt32 COMBATEVENT_HEALCRIT = 6;
+        public const UInt32 COMBATEVENT_AFFECT = 8;
         public const UInt32 COMBATEVENT_DEATH = 9;
 
         public const UInt32 COMBATSOURCE_AUTOATTACK = 0;
+        public const UInt32 COMBATSOURCE_SPELL = 1;
 
 
         public GameNet() {

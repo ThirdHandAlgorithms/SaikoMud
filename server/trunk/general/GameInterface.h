@@ -54,6 +54,7 @@ public:
    bool attack_start(uint32_t iWorldId);
    //bool attack_stop();
    // ...
+   bool cast_spell(uint32_t iSpellId, uint32_t iWorldId);
 
    int radar_getNearbyNpcs(TGFVector *v);
    int radar_getNearbyPlayers(TGFVector *v);
