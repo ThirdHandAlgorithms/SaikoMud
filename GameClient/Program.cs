@@ -22,6 +22,14 @@ namespace GameClient {
 
         private bool isZoomedIn = false;
 
+        private bool isWalking = false;
+        private Point walkshift = new Point(0, 0);
+        private Point walkdirection = new Point(0, 0);
+        private long walkanim_maxms = 10000;
+        private UInt32 afteranimtriggercommand = 0;
+
+        private Stopwatch rendertimer = new Stopwatch();
+
         // todo: why am i using m_, what kind of shitty standard is that??
         private Surface m_SpriteSheet;
         private Surface m_vidsurf;
@@ -33,6 +41,9 @@ namespace GameClient {
         private Surface m_TooltipBox;
         private Music m_level_music;
         private Surface m_MagnifyButton;
+
+        private Surface m_Spell_Bolt;
+        private Surface m_Spell_Heart;
 
         private Surface m_SandEnv;
         private Surface m_WaterEnv;
@@ -57,6 +68,7 @@ namespace GameClient {
         private Rectangle InfoBoxArea = new Rectangle();
         private Rectangle RoomInfoTextArea = new Rectangle();
         private Rectangle BagslotTextAreaTopLeft = new Rectangle();
+        private Rectangle SpellBarArea = new Rectangle();
 
         private Rectangle StatsTextArea = new Rectangle();
 
@@ -107,6 +119,7 @@ namespace GameClient {
         private UInt32 CurrentQuestId = 0;
 
         private String[] arrStrMap = null;
+        private String[] arrStrMapExtra = null;
 
         private SpriteCollection tex = new SpriteCollection();
 
@@ -188,8 +201,9 @@ namespace GameClient {
 
             MapArea.X = 0;
             MapArea.Y = 25;
-            MapArea.Height = m_vidsurf.Height - ActionInfoArea.Height - 100;
-            MapArea.Width = m_vidsurf.Width - 100;
+
+            MapArea.Height = sz.Height * 10;
+            MapArea.Width = sz.Width * 10;
 
             DeathMessageArea.X = 100;
             DeathMessageArea.Y = 100;
@@ -204,6 +218,9 @@ namespace GameClient {
             MagnifyButtonArea.Y = Video.Screen.Height - 70;
             MagnifyButtonArea.Width = 63;
             MagnifyButtonArea.Height = 63;
+
+            SpellBarArea.X = MagnifyButtonArea.X + 70;
+            SpellBarArea.Y = MagnifyButtonArea.Y;
 
             RoomInfoTextArea.X = InfoBoxArea.X + 10;
             RoomInfoTextArea.Y = InfoBoxArea.Y + 10;
@@ -271,7 +288,9 @@ namespace GameClient {
             net.combatmsg += OnCombatEvent;
             net.iteminfo += OnItemInfo;
             net.itemstats += OnItemStatsInfo;
-            
+            net.spellinfo += OnSpellInfo;
+
+            net.spells += OnPlayerSpells;
             net.gearslots += OnGearSlots;
             net.bagslots += OnBagSlots;
 
@@ -342,6 +361,7 @@ namespace GameClient {
                 net.SendBinToServer(GameNet.c_self_getallstats, 0, 0, "");
                 net.SendBinToServer(GameNet.c_info_getgearslots, CharSelf.WorldID, 0, "");
                 net.SendBinToServer(GameNet.c_self_getbagslots, 0, 0, "");
+                net.SendBinToServer(GameNet.c_self_getspells, 0, 0, "");
             }
 
             LastActionTime = DateTime.Now;
@@ -349,7 +369,7 @@ namespace GameClient {
             frmDebug.addMessage(str + crlf[0]);
         }
 
-        public void OnMapInfo(UInt32 command, UInt32 iSelfX, UInt32 iSelfY, String str, UInt32 intparam3, UInt32 intparam4) {
+        public void OnMapInfo(UInt32 command, UInt32 iSelfX, UInt32 iSelfY, String str, UInt32 iTriggerCommand, UInt32 iExtraSize) {
             StrMapInfo = str;
 
             //frmDebug.addMessage(str + crlf);
@@ -359,7 +379,50 @@ namespace GameClient {
                 CharSelf.Y = (Int32)iSelfY;
             }
 
-            arrStrMap = StrMapInfo.Split( crlf, StringSplitOptions.None );
+            if (iExtraSize == 0) {
+                arrStrMap = StrMapInfo.Split(crlf, StringSplitOptions.None);
+            } else {
+                arrStrMapExtra = StrMapInfo.Split(crlf, StringSplitOptions.None);
+            }
+
+            if (iTriggerCommand == 0) {
+            } else if (iTriggerCommand == GameNet.c_check_walkforward) {
+                if (iExtraSize == 0) {
+                    isWalking = false;
+                } else {
+                    afteranimtriggercommand = GameNet.c_run_walkforward;
+                    startWalking(0,1);
+                }
+            } else if (iTriggerCommand == GameNet.c_check_walkbackwards) {
+                if (iExtraSize == 0) {
+                    isWalking = false;
+                } else {
+                    afteranimtriggercommand = GameNet.c_run_walkbackwards;
+                    startWalking(0, -1);
+                }
+            } else if (iTriggerCommand == GameNet.c_check_walkright) {
+                if (iExtraSize == 0) {
+                    isWalking = false;
+                } else {
+                    afteranimtriggercommand = GameNet.c_run_walkright;
+                    startWalking(-1, 0);
+                }
+            } else if (iTriggerCommand == GameNet.c_check_walkleft) {
+                if (iExtraSize == 0) {
+                    isWalking = false;
+                } else {
+                    afteranimtriggercommand = GameNet.c_run_walkleft;
+                    startWalking(1, 0);
+                }
+            } else if (iTriggerCommand == GameNet.c_run_walkforward) {
+                isWalking = false;
+            } else if (iTriggerCommand == GameNet.c_run_walkbackwards) {
+                isWalking = false;
+            } else if (iTriggerCommand == GameNet.c_run_walkright) {
+                isWalking = false;
+            } else if (iTriggerCommand == GameNet.c_run_walkleft) {
+                isWalking = false;
+            }
         }
 
         public void OnBagSlots(UInt32 command, List<UInt32> intarr, List<String> strarr) {
@@ -476,6 +539,46 @@ namespace GameClient {
                 item.strength = strength;
                 item.energy = energy;
                 item.protection = protection;
+            }
+        }
+        
+        public void OnSpellInfo(UInt32 command, UInt32 spellid, UInt32 basedamage, String sSpellname, UInt32 casttime, UInt32 cooldown) {
+            frmDebug.addMessage(sSpellname);
+
+            foreach (var spell in CharSelf.spells) {
+                if (spell.SpellID == spellid)  {
+                    spell.BaseDamage = basedamage;
+                    spell.Casttime = casttime;
+                    spell.Cooldown = cooldown;
+                }
+            }
+        }
+        
+        public void OnPlayerSpells(UInt32 command, List<UInt32> intarr, List<String> strarr) {
+            int i = 0;
+
+            CharSelf.spells.Clear();
+            foreach (var iSpellId in intarr) {
+                if (i == 0) {
+                    if (intarr[0] == CharSelf.WorldID) {
+                        i++;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+
+                CSpell spell;
+
+                spell = new CSpell();
+                spell.SpellID = iSpellId;
+                spell.Name = strarr[i];
+
+                CharSelf.spells.Add(spell);
+
+                frmDebug.addMessage(spell.Name + crlf[0]);
+
+                i++;
             }
         }
 
@@ -731,6 +834,11 @@ namespace GameClient {
             col = new AnimationCollection();
             col.Add(surf);
             m_SpritePlayerPuppet.Animations.Add("idle", col);
+
+            m_Spell_Bolt = new Surface(DataDir + @"spell_bolt.png");
+            m_Spell_Bolt.SourceColorKey = Color.FromArgb(255, 255, 255);
+            m_Spell_Heart = new Surface(DataDir + @"spell_heart.png");
+            m_Spell_Heart.SourceColorKey = Color.FromArgb(255, 255, 255);
         }
 
         private void LoadTextures() {
@@ -1011,6 +1119,31 @@ namespace GameClient {
             }
         }
 
+        private void RenderSpellbar() {
+            Rectangle SpellbuttonArea = new Rectangle();
+            SpellbuttonArea.X = SpellBarArea.X;
+            SpellbuttonArea.Y = SpellBarArea.Y;
+
+            int i = 1;
+            foreach (var spell in CharSelf.spells) {
+                if (spell.SpellID != 0) {
+                    // todo: make tooltip, we have a name, can add dmg/etc later through itemtooltip kind of cached-request
+
+                    // show button and keybind
+                    if (spell.SpellID == 1) {
+                        BufferSurface.Blit(m_Spell_Bolt, SpellbuttonArea);
+                        BufferSurface.Blit(font_iteminfo.Render("" + i, Color.Black), SpellbuttonArea);
+                    } else if (spell.SpellID == 2) {
+                        BufferSurface.Blit(m_Spell_Heart, SpellbuttonArea);
+                        BufferSurface.Blit(font_iteminfo.Render("" + i, Color.Black), SpellbuttonArea);
+                    }
+
+                    SpellbuttonArea.X += 70;
+                    i++;
+                }
+            }
+        }
+
         private void RenderItemTooltip() {
             if (ToolTipItem != null) {
                 BufferSurface.Blit(m_TooltipBox, ToolTipLocation);
@@ -1072,6 +1205,7 @@ namespace GameClient {
         }
 
         private void RenderHero() {
+/*
             long xDiff = NewHeroPos.X - LastHeroPos.X;
             long yDiff = NewHeroPos.Y - LastHeroPos.Y;
 
@@ -1094,8 +1228,8 @@ namespace GameClient {
             if (hero.Y == NewHeroPos.Y) {
                 LastHeroPos.Y = hero.Y;
             }
-
-            BufferSurface.Blit(hero);
+*/
+            BufferSurface.Blit(hero, new Point(hero.X + MapArea.X, hero.Y + MapArea.Y));
         }
 
         private Surface newTexFromEnv(byte envid) {
@@ -1309,52 +1443,44 @@ namespace GameClient {
             return 0;
         }
 
-        private void RenderWorld() {
+        private void startWalking(int xdir, int ydir) {
+            walkshift.X = 0;
+            walkshift.Y = 0;
+
+            walkdirection.X = xdir;
+            walkdirection.Y = ydir;
+            //walkanim_maxms = 1000;
+
+            isWalking = true;
+        }
+
+        private Surface RenderWorld(String[] arrMap) {
             Point worldpoint = new Point(0, 0);
             Point spriteoffset = new Point(0, 0);
 
             Rectangle spriterect = new Rectangle(spriteoffset, sz);
 
-            if (arrStrMap == null) {
-                return;
+            if (arrMap == null) {
+                return null;
             }
 
-            int maxy = arrStrMap.Length;
+            int maxy = arrMap.Length;
             int maxx = 0;
 
             if (maxy > 0) {
-                maxx = arrStrMap[0].Length;
+                maxx = arrMap[0].Length;
             }
-            
-            worldpoint.Y = MapArea.Y;
+
+            Surface buffer = new Surface(new Size(maxx*sz.Width, maxy*sz.Height));
+
+            worldpoint.Y = 0;
             for (int y = 0; y < maxy; y++) {
-                worldpoint.X = MapArea.X;
-                maxx = arrStrMap[y].Length;
+                worldpoint.X = 0;
+                maxx = arrMap[y].Length;
                 for (int x = 0; x < maxx; x++) {
                     byte envtype = 0;
-                    if (arrStrMap[y][x] == '@') {
+                    if (arrMap[y][x] == '@') {
                         envtype = this.RoomEnvType;
-                        NewHeroPos.X = worldpoint.X;
-                        NewHeroPos.Y = worldpoint.Y;
-
-                        envtex_east = 0;
-                        envtex_north = 0;
-                        envtex_west = 0; 
-                        if (x > 0) {
-                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
-                        }
-                        if (y > 0) {
-                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
-                        }
-                        if (x < (maxx - 1)) {
-                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
-                        }
-                    } else if ((arrStrMap[y][x] >= '0') && (arrStrMap[y][x] <= '9')) {
-                        envtype = (byte)(UInt32.Parse(arrStrMap[y][x] + "") & 0xff);
-                    } else if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
-                        envtype = (byte)((arrStrMap[y][x] - 'A') & 0xff);
-                    } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
-                        envtype = (byte)((arrStrMap[y][x] - 'a') & 0xff);
                         NewHeroPos.X = worldpoint.X;
                         NewHeroPos.Y = worldpoint.Y;
 
@@ -1362,31 +1488,52 @@ namespace GameClient {
                         envtex_north = 0;
                         envtex_west = 0;
                         if (x > 0) {
-                            envtex_east = getEnvTypeFromChar(arrStrMap[y][x - 1]);
+                            envtex_east = getEnvTypeFromChar(arrMap[y][x - 1]);
                         }
                         if (y > 0) {
-                            envtex_north = getEnvTypeFromChar(arrStrMap[y - 1][x]);
+                            envtex_north = getEnvTypeFromChar(arrMap[y - 1][x]);
                         }
                         if (x < (maxx - 1)) {
-                            envtex_west = getEnvTypeFromChar(arrStrMap[y][x + 1]);
+                            envtex_west = getEnvTypeFromChar(arrMap[y][x + 1]);
+                        }
+                    } else if ((arrMap[y][x] >= '0') && (arrMap[y][x] <= '9')) {
+                        envtype = (byte)(UInt32.Parse(arrMap[y][x] + "") & 0xff);
+                    } else if ((arrMap[y][x] >= 'A') && (arrMap[y][x] <= 'Z')) {
+                        envtype = (byte)((arrMap[y][x] - 'A') & 0xff);
+                    } else if ((arrMap[y][x] >= 'a') && (arrMap[y][x] <= 'z')) {
+                        envtype = (byte)((arrMap[y][x] - 'a') & 0xff);
+                        NewHeroPos.X = worldpoint.X;
+                        NewHeroPos.Y = worldpoint.Y;
+
+                        envtex_east = 0;
+                        envtex_north = 0;
+                        envtex_west = 0;
+                        if (x > 0) {
+                            envtex_east = getEnvTypeFromChar(arrMap[y][x - 1]);
+                        }
+                        if (y > 0) {
+                            envtex_north = getEnvTypeFromChar(arrMap[y - 1][x]);
+                        }
+                        if (x < (maxx - 1)) {
+                            envtex_west = getEnvTypeFromChar(arrMap[y][x + 1]);
                         }
                     } else {
                         envtype = 0;
                     }
 
                     spriterect.Y = envtype * sz.Height;
-                    BufferSurface.Blit(m_SpriteSheet, worldpoint, spriterect); 
+                    buffer.Blit(m_SpriteSheet, worldpoint, spriterect);
 
-                    if ((arrStrMap[y][x] >= 'A') && (arrStrMap[y][x] <= 'Z')) {
+                    if ((arrMap[y][x] >= 'A') && (arrMap[y][x] <= 'Z')) {
                         Rectangle r = new Rectangle();
                         r.X = worldpoint.X;
                         r.Y = worldpoint.Y;
-                        BufferSurface.Blit(m_spriteNpcs, r);
-                    } else if ((arrStrMap[y][x] >= 'a') && (arrStrMap[y][x] <= 'z')) {
+                        buffer.Blit(m_spriteNpcs, r);
+                    } else if ((arrMap[y][x] >= 'a') && (arrMap[y][x] <= 'z')) {
                         Rectangle r = new Rectangle();
                         r.X = worldpoint.X;
                         r.Y = worldpoint.Y;
-                        BufferSurface.Blit(m_spriteNpcs, r);
+                        buffer.Blit(m_spriteNpcs, r);
                     }
 
                     worldpoint.X += sz.Width;
@@ -1394,6 +1541,56 @@ namespace GameClient {
                 worldpoint.Y += sz.Height;
             }
 
+            return buffer;
+        }
+
+        private void RenderWorld() {
+            if (rendertimer.IsRunning) {
+                rendertimer.Stop();
+
+                if (isWalking) {
+                    double m = (double)sz.Width / (double)walkanim_maxms;
+
+                    int iShift = (int)(m * rendertimer.ElapsedMilliseconds);
+                    if (iShift <= 0) {
+                        iShift = 1;
+                    }
+
+                    if (iShift < sz.Width) {
+                        walkshift.X += walkdirection.X * iShift;
+                        walkshift.Y += walkdirection.Y * iShift;
+                    } else {
+                        walkshift.X = walkdirection.X * sz.Width;
+                        walkshift.Y = walkdirection.Y * sz.Height;
+                    }
+
+                    if (
+                        ((walkdirection.X > 0) && (walkshift.X >= sz.Width)) ||
+                        ((walkdirection.X < 0) && (walkshift.X * -1 >= sz.Width)) ||
+                        ((walkdirection.Y > 0) && (walkshift.Y >= sz.Height)) ||
+                        ((walkdirection.Y < 0) && (walkshift.Y * -1 >= sz.Height))
+                    ) {
+                        net.SendBinToServer(afteranimtriggercommand, 0, 0, "");
+                    }
+
+                }
+            }
+
+            rendertimer.Reset();
+            rendertimer.Start();
+
+            if (isWalking) {
+                if ((arrStrMapExtra == null) || (walkdirection.X == 0 && walkdirection.Y == 0)) {
+                    Surface buffer = RenderWorld(arrStrMap);
+                    BufferSurface.Blit(buffer, new Point(MapArea.X, MapArea.Y), new Rectangle(0, 0, MapArea.Width, MapArea.Height));
+                } else {
+                    Surface buffer = RenderWorld(arrStrMapExtra);
+                    BufferSurface.Blit(buffer, new Point(MapArea.X, MapArea.Y), new Rectangle(sz.Width - walkshift.X, sz.Height - walkshift.Y, MapArea.Width, MapArea.Height));
+                }
+            } else {
+                Surface buffer = RenderWorld(arrStrMap);
+                BufferSurface.Blit(buffer, new Point(MapArea.X, MapArea.Y), new Rectangle(0, 0, MapArea.Width, MapArea.Height));
+            }
 
             RenderHero();
         }
@@ -1437,8 +1634,8 @@ namespace GameClient {
             hero.Animate = false;
             // Put him in the center of the screen
             hero.Center = new Point(
-                MapArea.X + hero.Width / 2,
-                MapArea.Y + hero.Height / 2);
+                (MapArea.Width + hero.Width) / 2,
+                (MapArea.Height + hero.Height) / 2);
         }
 
         private void RenderDeath() {
@@ -1465,6 +1662,7 @@ namespace GameClient {
                 RenderSlotsAndStats();
                 RenderBagslots();
                 RenderActionInfo();
+                RenderSpellbar();
                 RenderRoomInfo();
                 RenderNPCDialog();
                 RenderItemTooltip();
@@ -1620,60 +1818,92 @@ namespace GameClient {
             }
         }
 
+        private CSpell GetMySpellByIndex(int iSpellIdx) {
+            int i = 1;
+            foreach (var spell in CharSelf.spells) {
+                if (spell.SpellID != 0) {
+                    if (i == iSpellIdx) {
+                        return spell;
+                    }
+                    i++;
+                }
+            }
+
+            return null;
+        }
+
+        private CPositionedChar GetClosestCharOrNpc() {
+            if (this.NPCsAvailable.Count() > 0) {
+                return this.NPCsAvailable[0];
+            } else if (this.CharactersHere.Count() > 0) {
+                foreach (var c in this.CharactersHere) {
+                    if ((c.X == CharSelf.X) && (c.Y == CharSelf.Y)) {
+                        return c;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         private void Events_KeyboardDown(object sender, KeyboardEventArgs e) {
+            CPositionedChar attackthischar;
+            CSpell spell;
+
             // Check which key was pressed and change the animation accordingly
             switch (e.Key) {
                 case Key.A:
-                    net.SendBinToServer(GameNet.c_run_walkleft, 0, 0, "");
+                    if (!isWalking) {
+                        startWalking(0, 0);
+                        net.SendBinToServer(GameNet.c_check_walkleft, 0, 0, "");
 
-                    hero.CurrentAnimation = "WalkLeft";
-                    hero.Animate = true;
+                        hero.CurrentAnimation = "WalkLeft";
+                        hero.Animate = true;
 
-                    CurrentNPC = 0;
-                    CurrentQuestId = 0;
+                        CurrentNPC = 0;
+                        CurrentQuestId = 0;
+                    }
                     break;
                 case Key.D:
-                    net.SendBinToServer(GameNet.c_run_walkright, 0, 0, "");
+                    if (!isWalking) {
+                        startWalking(0, 0);
+                        net.SendBinToServer(GameNet.c_check_walkright, 0, 0, "");
 
-                    hero.CurrentAnimation = "WalkRight";
-                    hero.Animate = true;
+                        hero.CurrentAnimation = "WalkRight";
+                        hero.Animate = true;
 
-                    CurrentNPC = 0;
-                    CurrentQuestId = 0;
+                        CurrentNPC = 0;
+                        CurrentQuestId = 0;
+                    }
                     break;
                 case Key.S:
-                    net.SendBinToServer(GameNet.c_run_walkbackwards, 0, 0, "");
+                    if (!isWalking) {
+                        startWalking(0, 0);
+                        net.SendBinToServer(GameNet.c_check_walkbackwards, 0, 0, "");
 
-                    hero.CurrentAnimation = "WalkDown";
-                    hero.Animate = true;
+                        hero.CurrentAnimation = "WalkDown";
+                        hero.Animate = true;
 
-                    CurrentNPC = 0;
-                    CurrentQuestId = 0;
+                        CurrentNPC = 0;
+                        CurrentQuestId = 0;
+                    }
                     break;
                 case Key.W:
-                    net.SendBinToServer(GameNet.c_run_walkforward, 0, 0, "");
+                    if (!isWalking) {
+                        startWalking(0, 0);
+                        net.SendBinToServer(GameNet.c_check_walkforward, 0, 0, "");
 
-                    hero.CurrentAnimation = "WalkUp";
-                    hero.Animate = true;
+                        hero.CurrentAnimation = "WalkUp";
+                        hero.Animate = true;
 
-                    CurrentNPC = 0;
-                    CurrentQuestId = 0;
+                        CurrentNPC = 0;
+                        CurrentQuestId = 0;
+                    }
                     break;
                 case Key.KeypadMultiply:
-                    if (this.NPCsAvailable.Count() > 0) {
-                        net.SendBinToServer(GameNet.c_attack_start, this.NPCsAvailable[0].WorldID, 0, "");
-                    } else if (this.CharactersHere.Count() > 0) {
-                        CCharacter attackthischar = null;
-                        foreach (var c in this.CharactersHere) {
-                            if ((c.X == CharSelf.X) && (c.Y == CharSelf.Y)) {
-                                attackthischar = c;
-                                break;
-                            }
-                        }
-
-                        if (attackthischar != null) {
-                            net.SendBinToServer(GameNet.c_attack_start, attackthischar.WorldID, 0, "");
-                        }
+                    attackthischar = GetClosestCharOrNpc();
+                    if (attackthischar != null) {
+                        net.SendBinToServer(GameNet.c_attack_start, attackthischar.WorldID, 0, "");
                     }
                     break;
                 case Key.Space:
@@ -1708,6 +1938,60 @@ namespace GameClient {
                     // test equip first item in bags
                     if (CharSelf.bagslots.Count > 0) {
                         net.SendBinToServer(GameNet.c_info_equipitem, CharSelf.bagslots[0].item_id, 0, "");
+                    }
+                    break;
+                case Key.One:
+                    spell = GetMySpellByIndex(1);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
+                    }
+                    break;
+                case Key.Two:
+                    spell = GetMySpellByIndex(2);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
+                    }
+                    break;
+                case Key.Three:
+                    spell = GetMySpellByIndex(3);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
+                    }
+                    break;
+                case Key.Four:
+                    spell = GetMySpellByIndex(4);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
+                    }
+                    break;
+                case Key.Five:
+                    spell = GetMySpellByIndex(5);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
+                    }
+                    break;
+                case Key.Six:
+                    spell = GetMySpellByIndex(6);
+                    if (spell != null) {
+                        attackthischar = GetClosestCharOrNpc();
+                        if (attackthischar != null) {
+                            net.SendBinToServer(GameNet.c_cast_spell, attackthischar.WorldID, spell.SpellID, "");
+                        }
                     }
                     break;
             }

@@ -68,6 +68,9 @@ void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
    this->maxbagslots.set( rec.getValue(flds.getFieldIndex_ansi("maxbagslots"))->asInteger() );
 
    this->loadBagslots();
+   this->loadSpells();
+
+   this->setSpell(1, 5);
 }
 
 void CCharacter::calculateStats() {
@@ -212,6 +215,64 @@ void CCharacter::load() {
       qry.close();
    } else {
       printf("CCharacter::load(): %s\n", err.errorstring.getValue());
+   }
+}
+
+void CCharacter::loadSpells() {
+   if (spellslock.lockWhenAvailable()) {
+      spells.clear();
+
+      TGFString sql("select spell_id, hotkey from `char_spell` where char_id=:id order by hotkey asc");
+      TMySQLSquirrel qry(this->conn);
+      qry.setQuery(&sql);
+      qry.findOrAddParam("id")->setInteger(this->id);
+   
+      TSquirrelReturnData err;
+      if ( qry.open(&err) ) {
+         TGFBRecord rec;
+         while ( qry.next() ) {
+            qry.fetchRecord(&rec);
+
+            int c = rec.getValue(1)->asInteger();
+            while (spells.size() < c) {
+               // not a spell, but hack to match hotkey position
+               spells.push_back(0);
+            }
+
+            // add spell_id
+            spells.push_back( rec.getValue(0)->asInteger() );
+         }
+
+         qry.close();
+      } else {
+         printf("CCharacter::loadSpells(): %s\n", err.errorstring.getValue());
+      }
+
+      spellslock.unlock();
+   }
+}
+
+void CCharacter::setSpell(unsigned long iSpellId, int iHotkey) {
+   if (spellslock.lockWhenAvailable()) {
+      while (spells.size() < iHotkey + 1) {
+         spells.push_back(0);
+      }
+
+      int i = 0;
+      for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+         if (iHotkey == i) {
+            *it = iSpellId;
+         } else {
+            if (iSpellId == *it) {
+               *it = 0;
+            }
+         }
+         i++;
+      }
+
+      // todo: save to database
+
+      spellslock.unlock();
    }
 }
 
@@ -405,11 +466,12 @@ bool CCharacter::equipItem(const CItem *item) {
    return b;
 }
 
-std::vector<unsigned long> CCharacter::getBagSlots() const {
-   return this->bagslots;
+std::vector<unsigned long> CCharacter::getSpells() const {
+   return this->spells;
 }
 
-void CCharacter::loadActionSlots() {
+std::vector<unsigned long> CCharacter::getBagSlots() const {
+   return this->bagslots;
 }
 
 void CCharacter::save() {

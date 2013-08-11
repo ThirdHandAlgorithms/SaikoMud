@@ -40,8 +40,9 @@ namespace GameClient {
         public event GameNetExtCallback itemstats;
         public event GameNetDynCallback gearslots;
         public event GameNetExtCallback playerinfo;
-
+        public event GameNetExtCallback spellinfo;
         public event GameNetDynCallback bagslots;
+        public event GameNetDynCallback spells;
 
         // commands/actions
         public const UInt32 c_run_walkforward = 0x00000005;
@@ -49,8 +50,15 @@ namespace GameClient {
         public const UInt32 c_run_walkleft = 0x00000007;
         public const UInt32 c_run_walkright = 0x00000008;
 
+        public const UInt32 c_check_walkforward = 0x00000015;
+        public const UInt32  c_check_walkbackwards = 0x00000016;
+        public const UInt32 c_check_walkright = 0x00000017;
+        public const UInt32 c_check_walkleft = 0x00000018; 
+
         public const UInt32 c_attack_start = 0x20000009;
         public const UInt32 c_attack_stop = 0x0000000a;
+
+        public const UInt32 c_cast_spell = 0x2000000b;
 
         public const UInt32 c_chat_say = 0x30000010;
 
@@ -64,6 +72,8 @@ namespace GameClient {
         public const UInt32 c_radar_getmap = 0x00000109;
 
         public const UInt32 c_self_getallstats = 0x00000201;
+        public const UInt32 c_self_getspells = 0x00000202;
+        public const UInt32 c_info_getspellinfo = 0x20000203;
 
         public const UInt32 c_info_getiteminfo = 0x20000301;
         public const UInt32 c_info_getgearslots = 0x30400001;
@@ -77,7 +87,7 @@ namespace GameClient {
         // responses
         public const UInt32 c_response_lastactioninfo = 0x30010000;
         public const UInt32 c_response_roominfo = 0x30020000;
-        public const UInt32 c_response_asciimap = 0x30030000;
+        public const UInt32 c_response_asciimap = 0x70030000;
 
         public const UInt32 c_event_earnsxp = 0x20040001;
         public const UInt32 c_event_combatmsg = 0x70040002;
@@ -90,6 +100,8 @@ namespace GameClient {
         public const UInt32 c_event_statinfo_energy = 0x20040106;
         public const UInt32 c_event_statinfo_protection = 0x20040107;
 
+        public const UInt32 c_response_spellsinfo = 0x80040201;
+
         public const UInt32 c_response_chatmessage = 0x30100000;
 
         public const UInt32 c_response_npcinfo = 0x70110000;
@@ -101,9 +113,11 @@ namespace GameClient {
 
         public const UInt32 c_response_iteminfo = 0x70300001;
         public const UInt32 c_response_itemstats = 0x70300002;
+        public const UInt32 c_response_spellinfo = 0x70300003;
 
         public const UInt32 c_response_gearslots = 0x80400001;
         public const UInt32 c_response_bagslots = 0x80410001;
+        public const UInt32 c_response_spells = 0x80420001;
 
         public const UInt32 c_response_playerinfo = 0x70210001;
 
@@ -316,6 +330,8 @@ namespace GameClient {
                     statsinfo.Invoke(command, intparam1, intparam2, sDataStr);
                 } else if (command == c_response_iteminfo) {
                     iteminfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
+                } else if (command == c_response_spellinfo) {
+                    spellinfo.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_itemstats) {
                     itemstats.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_gearslots) {
@@ -326,6 +342,8 @@ namespace GameClient {
                     questitemrequired.Invoke(command, intparam1, intparam2, sDataStr, intparam3, intparam4);
                 } else if (command == c_response_bagslots) {
                     bagslots.Invoke(command, intarr, strarr);
+                } else if (command == c_response_spells) {
+                    spells.Invoke(command, intarr, strarr);
                 }
                 
             } catch {
@@ -572,7 +590,7 @@ namespace GameClient {
                 if (!Login(sUsername, sPassword)) {
                     throw new Exception("Cannot login");
                 }
-
+                    
                 isConnected = true;
 
                 EventHandler.Start();

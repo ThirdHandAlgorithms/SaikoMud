@@ -26,13 +26,13 @@ protected:
    void calculateStats();
 
    TGFLockable baglock;
-
    std::vector<unsigned long> bagslots;
-   TGFVector actionslots;
 
+   TGFLockable spellslock;
+   std::vector<unsigned long> spells;
+
+   void loadSpells();
    void loadBagslots();
-   
-   void loadActionSlots();
 
    bool updateItemIntoSlot(int iSlotId, __int64 iItemId);
 
@@ -66,6 +66,9 @@ public:
    bool equipItem(const CItem *item);
 
    std::vector<unsigned long> getBagSlots() const;
+   std::vector<unsigned long> getSpells() const;
+
+   void setSpell(unsigned long iSpellId, int iHotkey);
 
    // player specific functions
    bool pickupQuest(long iQuestId);

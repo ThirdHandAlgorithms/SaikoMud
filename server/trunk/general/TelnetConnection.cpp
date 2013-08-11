@@ -347,10 +347,10 @@ void CTelnetConnection::inform_lastaction() {
    }
 }
 
-void CTelnetConnection::inform_map() {
+void CTelnetConnection::inform_map(uint32_t extrainfo, uint32_t extrasize) {
    TGFString tmp;
    uint32_t x, y;
-   this->gameintf.GetTinyMap(&tmp, &x, &y);
+   this->gameintf.GetTinyMap(&tmp, &x, &y, extrasize);
 
    if (!bBinaryMode) {
       if (tmp.getLength() > 0) {
@@ -358,7 +358,7 @@ void CTelnetConnection::inform_map() {
          this->send(&tmp);
       }
    } else {
-      this->sendBin(c_response_asciimap, x, y, &tmp);
+      this->sendBin(c_response_asciimap, x, y, &tmp, extrainfo, extrasize);
    }
 }
 
@@ -406,6 +406,74 @@ bool CTelnetConnection::inform_itemstats(uint32_t iItemId) {
    } else {
       // todo: item/stats don't exist, give the client a hard time about things he shouldn't be doing...
       return false;
+   }
+
+   return true;
+}
+
+bool CTelnetConnection::inform_spellinfo(uint32_t iSpellId) {
+   CSpell *spell = Global_World()->getSpell(iSpellId);
+   if (spell != NULL) {
+      TGFString tmp(&(spell->name));
+
+      if (!bBinaryMode) {
+         if (tmp.getLength() > 0) {
+            tmp.append_ansi("\r\n");
+            this->send(&tmp);
+         }
+      } else {
+         this->sendBin(c_response_spellinfo, iSpellId, spell->basedamage, &tmp, spell->casttime, spell->cooldown);
+      }
+   } else {
+      return false;
+   }
+
+   return true;
+}
+
+bool CTelnetConnection::inform_playerspells(uint32_t iWorldId) {
+   std::vector<uint32_t> intarr;
+   TGFStringVector strarr;
+
+   CCharacter *c = NULL;
+   if (iWorldId == 0) {
+      c = Global_World()->getCharacter( this->gameintf.getPlayerWorldId() );
+   } else {
+      c = Global_World()->getCharacter(iWorldId);
+   }
+
+   if (c != NULL) {
+      intarr.push_back(c->WorldId);
+      strarr.addChunk(new TGFString(c->name.link()));
+
+      std::vector<unsigned long> spells = c->getSpells();
+
+      TGFVector v;
+      v.autoClear = true;
+      bool b = true;
+      for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+         if (b) {
+            // skip first 
+            b = false;
+            continue;
+         }
+
+         if (*it == 0) {
+            intarr.push_back(0);
+            strarr.addChunk( new TGFString("") );
+         } else {
+            CSpell *spell = Global_World()->getSpell(*it);
+            if (spell != NULL) {
+               intarr.push_back(spell->getId());
+               strarr.addChunk( new TGFString(&spell->name) );
+            } else {
+               intarr.push_back(0);
+               strarr.addChunk( new TGFString("") );
+            }
+         }
+      }
+
+      this->sendBin2(c_response_spells, &intarr, &strarr);
    }
 
    return true;
@@ -663,7 +731,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             buffer.setLength(0);
 
             this->inform_lastaction();
-            this->inform_map();
+            this->inform_map(0);
             this->inform_currentroom();
 
             return;
@@ -692,7 +760,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             this->gameintf.StartCombatDummy();
             bActionOk = true;
          } else if ( copy.startsWith_ansi("/tinymap") ) {
-            this->inform_map();
+            this->inform_map(0);
             bActionOk = true;
          } else if ( copy.startsWith_ansi("/lo") ) {
             this->gameintf.Logout();
@@ -722,6 +790,8 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             }
          } else if ( copy.startsWith_ansi("/bags") ) {
             bActionOk = this->inform_self_bagslots();
+         } else if ( copy.startsWith_ansi("/spells") ) {
+            bActionOk = this->inform_playerspells(0);
          }
 
          if ( copy.startsWith_ansi("w") ) {
@@ -753,6 +823,7 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
 
             bool bMovementActionOk = false;
             bool bNoRoomInfo = false;
+            bool bExtraMapInfo = false;
 
             if (command == c_run_walkbackwards) {
                bActionOk = this->gameintf.run_walkbackwards();
@@ -766,11 +837,28 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             } else if (command == c_run_walkright) {
                bActionOk = this->gameintf.run_walkright();
                bMovementActionOk = bActionOk;
+
+            } else if (command == c_check_walkforward) {
+               bActionOk = this->gameintf.check_walkforward();
+               bExtraMapInfo = true;
+            } else if (command == c_check_walkbackwards) {
+               bActionOk = this->gameintf.check_walkbackwards();
+               bExtraMapInfo = true;
+            } else if (command == c_check_walkright) {
+               bActionOk = this->gameintf.check_walkright();
+               bExtraMapInfo = true;
+            } else if (command == c_check_walkleft) {
+               bActionOk = this->gameintf.check_walkleft();
+               bExtraMapInfo = true;
+
             } else if (command == c_attack_start) {
                bActionOk = this->gameintf.attack_start(intparam1);
                bMovementActionOk = bActionOk;
             } else if (command == c_attack_stop) {
                //this->gameintf.attack_stop();
+            } else if (command == c_cast_spell) {
+               bActionOk = this->gameintf.cast_spell(intparam1, intparam2);
+               bMovementActionOk = bActionOk;
             } else if (command == c_chat_say) {
                if (intparam1 == 2) {
                   sendToGlobalChatChannel( this, &s );
@@ -851,6 +939,10 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->gameintf.inform_SelfAboutAllStats();
             } else if (command == c_info_getiteminfo) {
                bActionOk = this->inform_iteminfo(intparam1);
+            } else if (command == c_info_getspellinfo) {
+               bActionOk = this->inform_spellinfo(intparam1);
+            } else if (command == c_self_getspells) {
+               bActionOk = this->inform_playerspells(0);
             } else if (command == c_info_getitemstats) {
                bActionOk = this->inform_itemstats(intparam1);
             } else if (command == c_info_getgearslots) {
@@ -872,31 +964,39 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
                bActionOk = this->gameintf.dequip_item(intparam1);
             }
 
-            this->inform_lastaction();
+            if (bExtraMapInfo) {
+               if (bActionOk) {
+                  this->inform_map(command,1);
+               } else {
+                  this->inform_map(command,0);
+               }
+            } else {
+               this->inform_lastaction();
 
-            if (bActionOk || bMovementActionOk) {
+               if (bActionOk || bMovementActionOk) {
+                  if (bMovementActionOk) {
+                     this->inform_map(command, 0);
+                  } else if (iLastTimeSentMap + 1 <= GFGetTimestamp()) {
+                     this->inform_map(0);
+
+                     iLastTimeSentMap = GFGetTimestamp();
+                  }
+               }
+
                if (bMovementActionOk) {
-                  this->inform_map();
-               } else if (iLastTimeSentMap + 1 <= GFGetTimestamp()) {
-                  this->inform_map();
+                  if (!bNoRoomInfo) {
+                     this->inform_currentroom();
+                  }
 
-                  iLastTimeSentMap = GFGetTimestamp();
-               }
-            }
+                  TGFVector v;
+                  v.autoClear = false;
+                  int c = this->gameintf.radar_getNearbyPlayers(&v);
+                  if (c > 0) {
+                     for (int i = 0; i < c; i++) {
+                        CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
 
-            if (bMovementActionOk) {
-               if (!bNoRoomInfo) {
-                  this->inform_currentroom();
-               }
-
-               TGFVector v;
-               v.autoClear = false;
-               int c = this->gameintf.radar_getNearbyPlayers(&v);
-               if (c > 0) {
-                  for (int i = 0; i < c; i++) {
-                     CCharacter *c = static_cast<CCharacter *>(v.elementAt(i));
-
-                     this->inform_playerinfo(c);
+                        this->inform_playerinfo(c);
+                     }
                   }
                }
             }

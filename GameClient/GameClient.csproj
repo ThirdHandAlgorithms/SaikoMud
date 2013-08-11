@@ -102,6 +102,7 @@
       <DependentUpon>Debug.cs</DependentUpon>
     </Compile>
     <Compile Include="GameNet.cs" />
+    <Compile Include="GameObjects.cs" />
     <Compile Include="LoginScreen.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -165,9 +166,12 @@
     <Content Include="Data\npcs.png" />
     <Content Include="Data\npc_dialog.png" />
     <Content Include="Data\npc_puppet.png" />
+    <Content Include="Data\npc_questcomplete.png" />
     <Content Include="Data\player_puppet.png" />
     <Content Include="Data\puppet.png" />
     <Content Include="Data\sand_env.png" />
+    <Content Include="Data\spell_bolt.png" />
+    <Content Include="Data\spell_heart.png" />
     <Content Include="Data\statsandslots.png" />
     <Content Include="Data\stone_env.png" />
     <Content Include="Data\textures.png" />
