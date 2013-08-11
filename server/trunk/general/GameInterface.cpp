@@ -103,7 +103,7 @@ void CGameInterface::ReloadWorld() {
    Global_World()->reloadFromDatabase(Global_DBConnection());
 }
 
-void CGameInterface::GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY) {
+void CGameInterface::GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY, uint32_t extra) {
    this->DoChecks();
 
    if (this->loggedInCharacter == NULL) {
@@ -115,7 +115,7 @@ void CGameInterface::GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t 
       *iCurrentSelfX = (uint32_t)((int)realx);
       *iCurrentSelfY = (uint32_t)((int)realy);
 
-      Global_World()->echoAsciiMap(s, realx, realy, 5, true, this->loggedInCharacter);
+      Global_World()->echoAsciiMap(s, realx, realy, 5 + extra, true, this->loggedInCharacter);
    }
 }
 
@@ -179,6 +179,60 @@ bool CGameInterface::canCompleteQuest(CQuest *q) {
       }
 
       return b;
+   }
+
+   return false;
+}
+
+
+bool CGameInterface::check_walkforward() {
+   this->DoChecks();
+
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
+
+   CRoom *room = Global_World()->getRoom(x,y+1);
+   if ( room != NULL ) {
+      return (room->traversable);
+   }
+
+   return false;
+}
+bool CGameInterface::check_walkbackwards() {
+   this->DoChecks();
+
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
+
+   CRoom *room = Global_World()->getRoom(x,y-1);
+   if ( room != NULL ) {
+      return (room->traversable);
+   }
+
+   return false;
+}
+bool CGameInterface::check_walkleft() {
+   this->DoChecks();
+
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
+
+   CRoom *room = Global_World()->getRoom(x-1,y);
+   if ( room != NULL ) {
+      return (room->traversable);
+   }
+
+   return false;
+}
+bool CGameInterface::check_walkright() {
+   this->DoChecks();
+
+   long x = this->loggedInCharacter->x.get();
+   long y = this->loggedInCharacter->y.get();
+
+   CRoom *room = Global_World()->getRoom(x+1,y);
+   if ( room != NULL ) {
+      return (room->traversable);
    }
 
    return false;
@@ -352,7 +406,7 @@ bool CGameInterface::attack_start(uint32_t iWorldId) {
    return false;
 }
 
-bool CGameInterface::cast_spell(uint32_t iSpellId, uint32_t iWorldId) {
+bool CGameInterface::cast_spell(uint32_t iWorldId, uint32_t iSpellId) {
    this->DoChecks();
 
    CCharacter *cTarget = Global_World()->getCharacter(iWorldId);

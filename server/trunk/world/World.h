@@ -36,6 +36,7 @@ protected:
    TGFVector characters;
    TGFVector npcs;
    TGFVector itemcache;
+   TGFVector spellcache;
 
    // pointerlinks to characters and npcs with (hopefully) non-retraceable id's to the database id's - no-auto-free
    TGFVector worldids;
@@ -72,6 +73,7 @@ public:
 
    CCharacter *getCharacter(uint32_t iWorldId);
    CQuest *getQuest(uint32_t id);
+   CSpell *getSpell(uint32_t iSpellId);
 
    CItem *getItem(uint32_t id);
    CBaseCombatStats *getItemStats(uint32_t iItemId);

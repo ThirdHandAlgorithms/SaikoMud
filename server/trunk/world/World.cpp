@@ -360,6 +360,26 @@ CItem *CWorld::getItem(uint32_t iItemId) {
    return item;
 }
 
+CSpell *CWorld::getSpell(uint32_t iSpellId) {
+   CSpell *spell = static_cast<CSpell *>(spellcache.elementAt(iSpellId));
+
+   if (spell == NULL) {
+      spell = new CSpell(this->conn, iSpellId);
+      if (spell->getId() > 0) {
+         if (spellcache.size() < iSpellId) {
+            spellcache.resizeVector(iSpellId+1);
+            spellcache.setElementCount(iSpellId+1);
+         }
+         spellcache.replaceElement(iSpellId, spell);
+      } else {
+         delete spell;
+         spell = NULL;
+      }
+   }
+
+   return spell;
+}
+
 CBaseCombatStats *CWorld::getItemStats(uint32_t iItemId) {
    CItem *item = this->getItem(iItemId);
    if (item != NULL) {
@@ -501,7 +521,7 @@ void CWorld::onRespawnTimerCharacter(TGFFreeable *c) {
 
       CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
       if (tc != NULL) {
-         tc->inform_map();
+         tc->inform_map(0);
          tc->informAboutAllStats(cFor);
       }
    } else {

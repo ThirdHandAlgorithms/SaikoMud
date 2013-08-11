@@ -38,7 +38,7 @@ public:
 
    // world
    void ReloadWorld();
-   void GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY);
+   void GetTinyMap(TGFString *s, uint32_t *iCurrentSelfX, uint32_t *iCurrentSelfY, uint32_t extra = 0);
 
    uint32_t GetLastActionInfo(TGFString *s);
    BYTE GetRoomInfo(TGFString *s);
@@ -50,6 +50,11 @@ public:
    bool run_walkbackwards();
    bool run_walkleft();
    bool run_walkright();
+
+   bool check_walkforward();
+   bool check_walkbackwards();
+   bool check_walkleft();
+   bool check_walkright();
 
    bool attack_start(uint32_t iWorldId);
    //bool attack_stop();

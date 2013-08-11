@@ -3,11 +3,13 @@
 
 
 CSpell::CSpell(TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery) : TGFFreeable() {
+   this->id = 0;
+
    this->loadFromRecord(pQuery);
 }
 
 CSpell::CSpell(TMySQLSquirrelConnection *pConn, unsigned long id) : TGFFreeable() {
-   this->id = id;
+   this->id = 0;
 
    if (pConn != NULL) {
       TMySQLSquirrel aQuery(pConn);
@@ -28,7 +30,10 @@ CSpell::CSpell(TMySQLSquirrelConnection *pConn, unsigned long id) : TGFFreeable(
 }
 
 CSpell::~CSpell() {
+}
 
+unsigned long CSpell::getId() const {
+   return this->id;
 }
 
 void CSpell::loadFromRecord(TMySQLSquirrel *pQuery) {

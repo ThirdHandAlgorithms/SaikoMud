@@ -73,7 +73,17 @@ namespace GameClient {
         public String CurrentDialog;
     };
 
+    class CSpell {
+        public UInt32 SpellID = 0;
+        public string Name = "";
+        public UInt32 BaseDamage = 0;
+        public UInt32 Casttime = 0;
+        public UInt32 Cooldown = 0;
+    };
+
     class CCharacter : CPositionedChar {
+        public List<CSpell> spells = new List<CSpell>();
+
         public CCharSlot slot1 = null;
         public CCharSlot slot2 = null;
         public CCharSlot slot3 = null;

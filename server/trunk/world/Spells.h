@@ -22,6 +22,8 @@ public:
    CSpell(TMySQLSquirrelConnection *pConn, unsigned long id);
    CSpell(TMySQLSquirrelConnection *pConn, TMySQLSquirrel *pQuery);
    ~CSpell();
+
+   unsigned long getId() const;
 };
 
 
