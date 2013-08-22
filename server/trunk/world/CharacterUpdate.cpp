@@ -21,6 +21,17 @@ void CCharacterUpdate::execute() {
    if ( c != NULL ) {
       c->saveBagslots();
    }
+
+   c = static_cast<CCharacter *>( queueSpellSave.pop() );
+   if ( c != NULL ) {
+      c->saveSpells();
+   }
+}
+
+void CCharacterUpdate::scheduleFullSave( CCharacter *pChar ) {
+   this->schedule(pChar);
+   this->scheduleBagSave(pChar);
+   this->scheduleSpellSave(pChar);
 }
 
 void CCharacterUpdate::schedule( CCharacter *pChar ) {
@@ -32,5 +43,11 @@ void CCharacterUpdate::schedule( CCharacter *pChar ) {
 void CCharacterUpdate::scheduleBagSave( CCharacter *pChar ) {
    if ( queueBagSave.findElement(pChar) == -1 ) {
       queueBagSave.push(pChar);
+   }
+}
+
+void CCharacterUpdate::scheduleSpellSave( CCharacter *pChar ) {
+   if ( queueSpellSave.findElement(pChar) == -1 ) {
+      queueSpellSave.push(pChar);
    }
 }

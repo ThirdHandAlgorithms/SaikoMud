@@ -23,11 +23,13 @@ public:
    unsigned long prereq_quest_id;
    long rewards_xp;
    bool autocomplete;
+   unsigned long rewards_item;
+   unsigned long rewards_spell;
    
    CQuest();
    ~CQuest();
 
-   std::vector<CQuestItemRequired> getRequiredItems();
+   std::vector<CQuestItemRequired> getRequiredItems() const;
 };
 
 #endif //__QUEST_H__
