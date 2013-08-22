@@ -113,7 +113,6 @@ protected:
    bool inform_itemstats(uint32_t iItemId);
    bool inform_spellinfo(uint32_t iSpellId);
 
-   bool inform_playerspells(uint32_t iWorldId);
    bool inform_gearslots(uint32_t iWorldId);
 
    bool inform_equipeditem(uint32_t iSlotId);
@@ -143,6 +142,7 @@ public:
    void inform_combatevent(uint32_t iSourceWorldId, uint32_t iTargetWorldId, int eventtype, int amount, TGFString *combatmsg);
    void informAboutAllStats(CCharacter *cAbout);
    bool inform_self_bagslots();
+   bool inform_playerspells(uint32_t iWorldId);
 
    void sendChatMessage(uint32_t iChannelNr, TGFString *sMsg);
 

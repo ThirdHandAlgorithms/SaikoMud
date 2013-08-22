@@ -10,6 +10,8 @@ CQuest::CQuest() : TGFFreeable() {
    this->prereq_quest_id = 0;
    this->rewards_xp = 0;
    this->autocomplete = 0;
+   this->rewards_item = 0;
+   this->rewards_spell = 0;
 }
 
 CQuest::~CQuest() {
@@ -22,7 +24,7 @@ CQuestItemRequired make_itemreq(uint32_t item_id, uint32_t amountrequired) {
     return req;
 }
 
-std::vector<CQuestItemRequired> CQuest::getRequiredItems() {
+std::vector<CQuestItemRequired> CQuest::getRequiredItems() const {
    std::vector<CQuestItemRequired> arr;
 
    TGFString sql("select item_id, amountrequired from quest_item where quest_id=:quest_id");

@@ -52,7 +52,6 @@ protected:
 
    void loadNeededQuests(CNPCharacter *cNpc);
 
-   long completeQuest(CQuest *q, CCharacter *cFor);
 public:
    CWorld();
    ~CWorld();
@@ -74,6 +73,8 @@ public:
    CCharacter *getCharacter(uint32_t iWorldId);
    CQuest *getQuest(uint32_t id);
    CSpell *getSpell(uint32_t iSpellId);
+
+   long completeQuest(const CQuest *q, CCharacter *cFor);
 
    CItem *getItem(uint32_t id);
    CBaseCombatStats *getItemStats(uint32_t iItemId);

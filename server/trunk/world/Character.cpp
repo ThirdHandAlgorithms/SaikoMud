@@ -69,8 +69,6 @@ void CCharacter::loadFromRecord(TMySQLSquirrel *pQuery) {
 
    this->loadBagslots();
    this->loadSpells();
-
-   this->setSpell(1, 5);
 }
 
 void CCharacter::calculateStats() {
@@ -252,25 +250,101 @@ void CCharacter::loadSpells() {
    }
 }
 
+void CCharacter::saveSpells() {
+   if (spellslock.lockWhenAvailable()) {
+      TGFString sqlDelete("delete from char_spell where char_id=:char_id");
+      TGFString sqlInsert("insert into char_spell ( char_id, spell_id, hotkey) values (:char_id,:spell_id,:hotkey)");
+
+      TSquirrelReturnData err;
+
+      TMySQLSquirrel qry(this->conn);
+      qry.setQuery(&sqlDelete);
+      qry.findOrAddParam("char_id")->setInteger(this->id);
+
+      if ( qry.open(&err) ) {
+         qry.close();
+
+         int i =  0;
+         for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+            if (*it != 0) {
+               qry.setQuery(&sqlInsert);
+               qry.findOrAddParam("char_id")->setInteger(this->id);
+               qry.findOrAddParam("spell_id")->setInteger(*it);
+               qry.findOrAddParam("hotkey")->setInteger(i);
+               if (qry.open(&err)) {
+                  qry.close();
+               }
+            }
+            i++;
+         }
+         
+      } else {
+         printf("CCharacter::loadSpells(): %s\n", err.errorstring.getValue());
+      }
+
+      spellslock.unlock();
+   }
+}
+
+bool CCharacter::canPerformSpell(unsigned iSpellId) {
+   for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+      if (iSpellId == *it) {
+         return true;
+      }
+   }
+
+   return false;
+}
+
 void CCharacter::setSpell(unsigned long iSpellId, int iHotkey) {
    if (spellslock.lockWhenAvailable()) {
-      while (spells.size() < iHotkey + 1) {
-         spells.push_back(0);
-      }
+      if (iHotkey == -1) {
+         // fill empty spot, or add at the end
+         bool bFoundEmptySpot = false;
+         bool bAlreadyAdded = false;
 
-      int i = 0;
-      for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
-         if (iHotkey == i) {
-            *it = iSpellId;
-         } else {
+         // check if it isn't added already
+         for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
             if (iSpellId == *it) {
-               *it = 0;
+               bAlreadyAdded = true;
             }
          }
-         i++;
-      }
 
-      // todo: save to database
+         if (!bAlreadyAdded) {
+            int i = 0;
+            for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+               // don't put on hotkey 0
+               if ((i > 0) && (*it == 0)) {
+                  *it = iSpellId;
+                  bFoundEmptySpot = true;
+                  break;
+               }
+               i++;
+            }
+
+            if (!bFoundEmptySpot) {
+               spells.push_back(iSpellId);
+            }
+         }
+
+      } else {
+         while (spells.size() < iHotkey + 1) {
+            spells.push_back(0);
+         }
+         
+         int i = 0;
+         for (std::vector<unsigned long>::iterator it = spells.begin(); it != spells.end(); ++it) {
+            if (iHotkey == i) {
+               *it = iSpellId;
+            } else {
+               if (iSpellId == *it) {
+                  *it = 0;
+               }
+            }
+            i++;
+         }
+
+      }
 
       spellslock.unlock();
    }
@@ -437,6 +511,7 @@ bool CCharacter::equipItem(const CItem *item) {
 
                 CItem *slotitem = static_cast<CItem *>(v.elementAt(iSlotId - 1));
                 if (slotitem == NULL) {
+                   // todo: why is this written directly to the database? (while bagslots are queued)
                    if (updateItemIntoSlot(iSlotId, iItemId)) {
                       // if not, place item in slot, remove from bags
                       bagslots.erase(it);
@@ -455,9 +530,6 @@ bool CCharacter::equipItem(const CItem *item) {
                 break;
              }
          }
-
-         // save to db
-         this->saveBagslots();
 
          baglock.unlock();
       }
@@ -573,7 +645,7 @@ bool CCharacter::pickupQuest(long iQuestId) {
    return true;
 }
 
-bool CCharacter::completeQuest(long iQuestId, long iEarnXp) {
+bool CCharacter::completeQuest(long iQuestId, long iEarnXp, unsigned long iEarnItem, unsigned long iEarnSpell) {
    TGFString sql("update `questhistory` set dt_completed=:dt_completed where char_id=:char_id and quest_id=:quest_id and dt_completed=0");
    TMySQLSquirrel qry(this->conn);
    qry.setQuery(&sql);
@@ -587,6 +659,13 @@ bool CCharacter::completeQuest(long iQuestId, long iEarnXp) {
 
       if (err.affected == 1) {   // this way we don't have to lock the function with a mutex and do selects..
          this->xp.lockedAdd(iEarnXp);
+
+         if (iEarnItem != 0) {
+            this->addToBags(iEarnItem);
+         }
+         if (iEarnSpell != 0) {
+            this->setSpell(iEarnSpell, -1);
+         }
 
          return true;
       }

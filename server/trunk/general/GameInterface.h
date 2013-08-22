@@ -43,7 +43,8 @@ public:
    uint32_t GetLastActionInfo(TGFString *s);
    BYTE GetRoomInfo(TGFString *s);
 
-   bool canCompleteQuest(CQuest *q);
+   bool canCompleteQuest(const CQuest *q);
+   bool completeQuest(const CQuest *q);
 
    // character actions
    bool run_walkforward();

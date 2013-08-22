@@ -58,6 +58,7 @@ public:
 
    void save();
    void saveBagslots();
+   void saveSpells();
 
    bool hasItemInBags(unsigned long iItemId, unsigned int iAmount);
    bool addToBags(unsigned long iItemId);
@@ -69,6 +70,7 @@ public:
    std::vector<unsigned long> getSpells() const;
 
    void setSpell(unsigned long iSpellId, int iHotkey);
+   bool canPerformSpell(unsigned iSpellId);
 
    // player specific functions
    bool pickupQuest(long iQuestId);
@@ -76,7 +78,7 @@ public:
    bool hasDoneQuest(long iQuestId);   // quests player has completed (real player, not npc)
    bool isOnQuest(long iQuestId);
 
-   bool completeQuest(long iQuestId, long iEarnXp);
+   bool completeQuest(long iQuestId, long iEarnXp, unsigned long iEarnItem, unsigned long iEarnSpell);
    
    int getItemsInSlots(TGFVector *v);  // must free items in v
 };

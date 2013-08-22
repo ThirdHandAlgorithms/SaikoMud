@@ -460,6 +460,8 @@ void CWorld::loadNeededQuests(CNPCharacter *cNpc) {
       int fld_prereq = flds.getFieldIndex_ansi("prereq_quest_id");
       int fld_rewardsxp = flds.getFieldIndex_ansi("rewards_xp");
       int fld_autocomplete = flds.getFieldIndex_ansi("autocomplete");
+      int fld_rewardsitem = flds.getFieldIndex_ansi("rewards_item");
+      int fld_rewardsspell = flds.getFieldIndex_ansi("rewards_spell");
 
       while ( qry.next() ) {
          TGFBRecord rec;
@@ -472,6 +474,8 @@ void CWorld::loadNeededQuests(CNPCharacter *cNpc) {
          quest->story.setValue( rec.getValue(fld_story)->asString() );
          quest->rewards_xp = rec.getValue(fld_rewardsxp)->asInteger();
          quest->autocomplete = (rec.getValue(fld_autocomplete)->asInteger() == 1);
+         quest->rewards_item = rec.getValue(fld_rewardsitem)->asInteger();
+         quest->rewards_spell = rec.getValue(fld_rewardsspell)->asInteger();
 
          if (this->quests.size() <= quest->id) {
             this->quests.resizeVector(quest->id + 1);
@@ -488,17 +492,59 @@ void CWorld::loadNeededQuests(CNPCharacter *cNpc) {
    }
 }
 
-long CWorld::completeQuest(CQuest *q, CCharacter *cFor) {
+long CWorld::completeQuest(const CQuest *q, CCharacter *cFor) {
    long xp = q->rewards_xp;
 
-   if (cFor->completeQuest(q->id, xp)) {
-      Global_CharacterUpdate()->schedule(cFor);
+   std::vector<CQuestItemRequired> reqs = q->getRequiredItems();
+      
+   bool b = true;
+
+   // check if you have the items
+   for(std::vector<CQuestItemRequired>::iterator it = reqs.begin(); it != reqs.end(); ++it) {
+      b = cFor->hasItemInBags(it->item_id, it->amountrequired);
+
+      if (!b) {
+         return 0;
+      }
+   }
+
+   bool bItemsChanged = false;
+   bool bSpellsChanged = false;
+
+   // remove the items from your bags
+   for(std::vector<CQuestItemRequired>::iterator it = reqs.begin(); it != reqs.end(); ++it) {
+      for (unsigned int x = 0; x < it->amountrequired; x++) {
+         cFor->takeFromBags(it->item_id);
+         bItemsChanged = true;
+      }
+   }
+
+   // reward stuff
+   if (cFor->completeQuest(q->id, xp, q->rewards_item, q->rewards_spell)) {
+      Global_CharacterUpdate()->scheduleFullSave(cFor);
+
+      if (q->rewards_item != 0) {
+         bItemsChanged = true;
+      }
+      if (q->rewards_spell != 0) {
+         bSpellsChanged = true;
+      }
 
       // xp earned message before sql update :S - oh well...
       CTelnetConnection *tc = Global_Server()->getClientFromPool(cFor);
       if (tc != NULL) {
          // inform player
          tc->inform_earnxp(xp, cFor->xp.get());
+
+         // inform if items in bags changed
+         if (bItemsChanged) {
+            tc->inform_self_bagslots();
+         }
+
+         // inform if spells changes
+         if (bSpellsChanged) {
+            tc->inform_playerspells(0);
+         }
       }
    } else {
       // some error happened.. pretend we didn't notice for the time being..

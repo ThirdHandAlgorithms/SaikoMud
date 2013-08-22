@@ -162,7 +162,7 @@ uint32_t CGameInterface::GetLastActionInfo(TGFString *s) {
    return 0;
 }
 
-bool CGameInterface::canCompleteQuest(CQuest *q) {
+bool CGameInterface::canCompleteQuest(const CQuest *q) {
    this->DoChecks();
 
    if (this->loggedInCharacter != NULL) {
@@ -179,6 +179,16 @@ bool CGameInterface::canCompleteQuest(CQuest *q) {
       }
 
       return b;
+   }
+
+   return false;
+}
+
+bool CGameInterface::completeQuest(const CQuest *q) {
+   this->DoChecks();
+
+   if (this->loggedInCharacter != NULL) {
+      return (Global_World()->completeQuest(q, this->loggedInCharacter) != 0);
    }
 
    return false;
@@ -319,11 +329,18 @@ bool CGameInterface::equip_itemfrombags(uint32_t iItemId) {
 
    CItem *item = Global_World()->getItem(iItemId);
    if (item != NULL) {
-      return this->loggedInCharacter->equipItem(item);
+      bool b =  this->loggedInCharacter->equipItem(item);
+      if (b) {
+         Global_CharacterUpdate()->scheduleBagSave(this->loggedInCharacter);
+      }
+      return b;
    }
+
+   return false;
 }
 
 bool CGameInterface::dequip_item(uint32_t iItemId) {
+   // todo
    return false;
 }
 

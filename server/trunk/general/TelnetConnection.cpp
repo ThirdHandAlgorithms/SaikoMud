@@ -817,9 +817,9 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
          uint32_t intparam1, intparam2, intparam3, intparam4;
          TGFString s;
 
-         printf("start decodeNextBinMessageInBuffer\n");
+         //printf("start decodeNextBinMessageInBuffer\n");
          while ( decodeNextBinMessageInBuffer(&command, &intparam1, &intparam2, &s, &intparam3, &intparam4) )  {
-            printf("decodeNextBinMessageInBuffer -> %08x\n", command);
+           // printf("decodeNextBinMessageInBuffer -> %08x\n", command);
 
             bool bMovementActionOk = false;
             bool bNoRoomInfo = false;
@@ -924,14 +924,22 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
 
                   // send item requirement information
                   CQuest *q = Global_World()->getQuest(intparam1);
-                  
-                  // i hate std:vectors... why am I doing it this way.......
-                  std::vector<CQuestItemRequired> items = q->getRequiredItems();
-                  CQuestItemRequired *it;
-                  for (std::vector<CQuestItemRequired>::iterator it = items.begin(); it != items.end(); ++it) {
-                     CItem *item = Global_World()->getItem(it->item_id);
-                     if (item != NULL) {
-                        this->inform_questitemrequired(q->id, it->item_id, it->amountrequired, &(item->name));
+                  if (q != NULL) {
+                     // i hate std:vectors... why am I doing it this way.......
+                     std::vector<CQuestItemRequired> items = q->getRequiredItems();
+                     CQuestItemRequired *it;
+                     for (std::vector<CQuestItemRequired>::iterator it = items.begin(); it != items.end(); ++it) {
+                        CItem *item = Global_World()->getItem(it->item_id);
+                        if (item != NULL) {
+                           this->inform_questitemrequired(q->id, it->item_id, it->amountrequired, &(item->name));
+                        }
+                     }
+
+                     bool b = this->gameintf.canCompleteQuest(q);
+                     if (b) {
+                        if (this->gameintf.completeQuest(q) > 0) {
+                           // huray!
+                        }
                      }
                   }
                }
@@ -950,8 +958,17 @@ void CTelnetConnection::newMessageReceived( const TGFString *sMessage ) {
             } else if (command == c_self_getbagslots) {
                bActionOk = this->inform_self_bagslots();
             } else if (command == c_interact_getquestitemsrequired) {
-               // ... todo
-               // implemented in c_interact_getquesttext
+               CQuest *q = Global_World()->getQuest(intparam1);
+               if (q != NULL) {
+                  std::vector<CQuestItemRequired> items = q->getRequiredItems();
+                  CQuestItemRequired *it;
+                  for (std::vector<CQuestItemRequired>::iterator it = items.begin(); it != items.end(); ++it) {
+                     CItem *item = Global_World()->getItem(it->item_id);
+                     if (item != NULL) {
+                        this->inform_questitemrequired(q->id, it->item_id, it->amountrequired, &(item->name));
+                     }
+                  }
+               }
             } else if (command == c_info_equipitem) {
                bActionOk = this->gameintf.equip_itemfrombags(intparam1);
                if (bActionOk) {
