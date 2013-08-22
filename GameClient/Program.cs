@@ -1137,10 +1137,9 @@ namespace GameClient {
                         BufferSurface.Blit(m_Spell_Heart, SpellbuttonArea);
                         BufferSurface.Blit(font_iteminfo.Render("" + i, Color.Black), SpellbuttonArea);
                     }
-
-                    SpellbuttonArea.X += 70;
-                    i++;
                 }
+                SpellbuttonArea.X += 70;
+                i++;
             }
         }
 
@@ -1229,6 +1228,10 @@ namespace GameClient {
                 LastHeroPos.Y = hero.Y;
             }
 */
+            if (!isWalking) {
+                hero.Animate = false;
+            }
+
             BufferSurface.Blit(hero, new Point(hero.X + MapArea.X, hero.Y + MapArea.Y));
         }
 
@@ -1819,13 +1822,12 @@ namespace GameClient {
         }
 
         private CSpell GetMySpellByIndex(int iSpellIdx) {
-            int i = 1;
-            foreach (var spell in CharSelf.spells) {
-                if (spell.SpellID != 0) {
-                    if (i == iSpellIdx) {
+            if (iSpellIdx <= CharSelf.spells.Count) {
+                var spell = CharSelf.spells[iSpellIdx - 1];
+                if (spell != null) {
+                    if (spell.SpellID != 0) {
                         return spell;
                     }
-                    i++;
                 }
             }
 
