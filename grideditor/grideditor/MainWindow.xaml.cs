@@ -241,5 +241,15 @@ namespace grideditor {
 
             LoadSelectedRoom(false);
         }
+
+        private void Window_MouseMove(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+
+        }
     }
 }
