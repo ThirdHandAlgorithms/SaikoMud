@@ -1,7 +1,8 @@
 ﻿<Window x:Class="grideditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="768" Width="1024" Activated="Window_Activated" WindowState="Normal" WindowStyle="ToolWindow" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" MouseLeftButtonDown="Window_MouseLeftButtonDown" Loaded="Window_Loaded" xmlns:my="clr-namespace:grideditor" Closed="Window_Closed" MouseRightButtonDown="Window_MouseRightButtonDown" MouseLeftButtonUp="Window_MouseLeftButtonUp" MouseMove="Window_MouseMove">
+        Title="MainWindow" Height="768" Width="1024" Activated="Window_Activated" WindowState="Normal" WindowStyle="ToolWindow" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded" xmlns:my="clr-namespace:grideditor" Closed="Window_Closed"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown" MouseRightButtonDown="Window_MouseRightButtonDown" MouseLeftButtonUp="Window_MouseLeftButtonUp" MouseMove="Window_MouseMove">
     <Window.Resources>
         <my:saikomudDataSet x:Key="saikomudDataSet" />
         <CollectionViewSource x:Key="gridViewSource" Source="{Binding Path=grid, Source={StaticResource saikomudDataSet}}" />
