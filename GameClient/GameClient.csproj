@@ -76,9 +76,8 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SdlDotNet, Version=6.1.0.0, Culture=neutral, PublicKeyToken=26ad4f7e10c61408, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\SdlDotNet\bin\SdlDotNet.dll</HintPath>
+    <Reference Include="SdlDotNet">
+      <HintPath>..\..\..\..\Documents\GitHub\cs-sdl\SdlDotNet\src\bin\Debug\SdlDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -89,9 +88,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Tao.Sdl, Version=1.2.13.0, Culture=neutral, PublicKeyToken=9c7a200e36c0094e, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\SdlDotNet\bin\Tao.Sdl.dll</HintPath>
+    <Reference Include="Tao.Sdl">
+      <HintPath>..\..\..\..\Documents\GitHub\cs-sdl\SdlDotNet\src\bin\Debug\Tao.Sdl.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
